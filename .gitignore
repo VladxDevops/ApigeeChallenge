@@ -1,0 +1,44 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform variable files that may contain environment-specific secrets
+*.tfvars
+*.tfvars.json
+dev.tfvars
+
+# Secrets / credentials
+*.json
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example
+
+# Local tooling / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# AI / internal working documentation
+docs/internal/
+internalREADME.md
+
+# Generated local artifacts
+dist/
+build/
+tmp/
+temp/
+artifacts/
