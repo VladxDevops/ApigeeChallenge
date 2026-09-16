@@ -1,5 +1,5 @@
-module "networking" {
-  source = "./modules/networking"
+module "infrastructure" {
+  source = "./modules/infrastructure"
 
   compute_project_id                        = var.compute_project_id
   compute_project_number                    = var.compute_project_number
