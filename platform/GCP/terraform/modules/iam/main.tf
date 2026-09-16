@@ -10,11 +10,6 @@ resource "google_project_iam_member" "terraform_sa_service_usage_admin" {
   member  = "serviceAccount:${var.terraform_deployer_service_account}"
 }
 
-resource "google_project_iam_member" "terraform_sa_workload_identity_admin" {
-  project = var.compute_project_id
-  role    = "roles/iam.workloadIdentityPoolAdmin"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
 
 resource "google_project_iam_member" "terraform_sa_google_cloud_deploy_admin" {
   project = var.compute_project_id
@@ -55,12 +50,6 @@ resource "google_project_iam_member" "terraform_sa_cloud_run_admin" {
 resource "google_project_iam_member" "terraform_sa_cloud_run_invoker" {
   project = var.compute_project_id
   role    = "roles/run.invoker"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
-resource "google_project_iam_member" "terraform_sa_cloud_sql_admin" {
-  project = var.compute_project_id
-  role    = "roles/cloudsql.admin"
   member  = "serviceAccount:${var.terraform_deployer_service_account}"
 }
 
@@ -130,34 +119,12 @@ resource "google_project_iam_member" "terraform_sa_storage_admin" {
   member  = "serviceAccount:${var.terraform_deployer_service_account}"
 }
 
-resource "google_project_iam_member" "terraform_sa_cloudsql_admin" {
-  project = var.compute_project_id
-  role    = "roles/cloudsql.admin"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
+#resource "google_project_iam_member" "terraform_sa_logging_writer" {
+#  project = var.compute_project_id
+#  role    = "roles/logging.logWriter"
+#  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+#}
 
-resource "google_project_iam_member" "terraform_sa_remote_project_iam_admin" {
-  project = var.remote_terraform_state_gcp_project
-  role    = "roles/resourcemanager.projectIamAdmin"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
 
-resource "google_project_iam_member" "terraform_sa_remote_secret_viewer" {
-  project = var.remote_terraform_state_gcp_project
-  role    = "roles/secretmanager.viewer"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
-resource "google_project_iam_member" "terraform_sa_remote_secret_accessor" {
-  project = var.remote_terraform_state_gcp_project
-  role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
-resource "google_project_iam_member" "terraform_sa_logging_writer" {
-  project = var.compute_project_id
-  role    = "roles/logging.logWriter"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
+###End of Roles for terraform deployer service account
 

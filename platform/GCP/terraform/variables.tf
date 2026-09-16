@@ -21,3 +21,10 @@ variable "terraform_remote_state_bucket_name" {
   description = "Name of the GCS bucket for Terraform remote state."
   type = string
 }
+
+
+#Terraform deployer service account:
+variable "terraform_deployer_service_account" {
+  description = "Service account email for the Terraform deployer."
+  type = string
+}
