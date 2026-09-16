@@ -13,7 +13,7 @@ override.tf.json
 # Terraform variable files that may contain environment-specific secrets
 *.tfvars
 *.tfvars.json
-dev.tfvars
+/platform/GCP/terraform/dev.tfvars
 
 # Secrets / credentials
 *.json
