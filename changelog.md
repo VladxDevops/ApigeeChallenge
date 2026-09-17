@@ -18,3 +18,5 @@
 - Established machine control plane `AI_MANIFEST.toml` at repository root and inside skill examples (`examples/AI_MANIFEST_APIGEE.toml`).
 - Created automated metadata and link validator CLI (`scripts/validate_metadata.py`).
 - Added internal documentation catalog (`internalDocumentation/README.md`).
+- Updated challenge requirements reference path to `Challenge/challenge.md` across all skill files and manifests.
+- Integrated comprehensive image analysis of `Challenge/FullView.png` and related schematics directly into `Challenge/challenge.md` under section '2. Punto de partida'.

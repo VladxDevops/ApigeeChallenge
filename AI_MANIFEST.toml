@@ -34,7 +34,7 @@ knowledge_version = "1.0.0"
 [conventions]
 metadata_format = "TOML Front Matter (+++ ... +++)"
 progressive_disclosure_layers = [
-    "Tier 1: Master Entry Points & Discovery Indexes (README.md, AGENTS.md, AI_MANIFEST.toml, Architecture-baseline.md, challenge.md, internalREADME.md, TODOS.md)",
+    "Tier 1: Master Entry Points & Discovery Indexes (README.md, AGENTS.md, AI_MANIFEST.toml, Architecture-baseline.md, Challenge/challenge.md, internalREADME.md, TODOS.md)",
     "Tier 2: System Architecture & Cross-Cutting Directives (docs/architecture/, docs/decisions/, docs/networking/, docs/security/, docs/assumptions/)",
     "Tier 3: Domain & Subproject Implementation Guides (docs/architecture/CloudRun/, platform/GCP/terraform/, APPS/APIgee/, scripts/, tests/)",
     "Tier 4: Operational Runbooks, Working Material & Oral Defense (docs/operations/, internalDocumentation/)"
@@ -63,7 +63,7 @@ skills_catalog = "internalDocumentation/skills/"
 master_index = "README.md"
 agent_contract = "AGENTS.md"
 architecture_baseline = "Architecture-baseline.md"
-requirements = "challenge.md"
+requirements = "Challenge/challenge.md"
 system_architecture = "docs/architecture/architecture.md"
 traffic_flows = "docs/architecture/traffic-flows.md"
 architecture_decisions = "docs/decisions/architecture-decisions.md"
