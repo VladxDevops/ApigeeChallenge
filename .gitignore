@@ -34,7 +34,11 @@ Thumbs.db
 
 # AI / internal working documentation
 docs/internal/
+/internalDocumentation
 internalREADME.md
+TODOS.md
+
+/Agents
 
 # Generated local artifacts
 dist/
@@ -42,3 +46,4 @@ build/
 tmp/
 temp/
 artifacts/
+

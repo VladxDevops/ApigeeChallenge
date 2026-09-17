@@ -1,4 +1,4 @@
-module "infrastructure" {
+/*module "infrastructure" {
   source = "./modules/infrastructure"
 
   compute_project_id                        = var.compute_project_id

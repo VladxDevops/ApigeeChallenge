@@ -8,6 +8,7 @@ resource "google_storage_bucket" "terraform_state_backend_rocket" {
   versioning {
     enabled = true
   }
+  prevent_destroy = true #Preventing delete of the bucket to avoid accidental loss of Terraform state files.
 }
 
 ###Terraform remote backend configuration for GCP

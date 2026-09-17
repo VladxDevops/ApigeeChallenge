@@ -1,479 +1,696 @@
-# Architecture — API Platform with Private Connectivity
+# Rocket Code — Cloud API Platform Architecture
 
-## 1. Executive Summary
 
-This document describes the end-to-end GCP architecture for a managed API platform that exposes services to external and internal clients while maintaining secure, private connectivity to on-premises backends.
+## 1. Purpose
 
-**Key design characteristics:**
-- Managed API runtime (Apigee) with Provider-managed isolation
-- Private Service Connect (PSC) for inbound and outbound connectivity
-- Spoke VPC for API platform with private backends
-- Hub VPC for hybrid routing and on-premises connectivity
-- Cloud VPN for secure on-premises integration
-- Cloud Armor + Application Load Balancer for external protection
-- End-to-end encryption and least-privilege IAM
+This document defines the target architecture for the Rocket Code Cloud Engineer / DevOps technical exercise.
 
----
+The project is being implemented as a **new project**. This document establishes the architectural direction that the Terraform code must implement and validate.
 
-## 2. Architecture Overview
+The architecture is intentionally practical and limited to the minimum components necessary to satisfy the exercise, demonstrate sound cloud/networking/security decisions, and be deployable and explainable within a few days.
 
-### 2.1 High-Level Traffic Flow
+The authoritative exercise requirements are stored verbatim in:
 
-```
-Internet Client
-    ↓ HTTPS
-Cloud Armor / External LB (us-central1)
-    ↓ PSC Consumer
-Apigee Managed Runtime (Provider-controlled)
-    ↓ PSC Producer (Private Service Connect)
-Internal Service Attachment → Shared VPC / Spoke VPC
-    ↓ Private routing
-Backend Layer (Cloud Run, other services)
-    ↓ (Response through same path)
-On-Premises Systems (via Hub VPC + Cloud VPN)
-```
+`challenge.md`
 
-### 2.2 Network Topology
-
-The architecture follows a **hub-and-spoke model with provider-managed runtime isolation**:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        EXTERNAL INTERNET                        │
-│                                                                 │
-│  External Client (Browser, Mobile, Third-party API Consumer)    │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ HTTPS
-                               ↓
-                  ┌────────────────────────────┐
-                  │  Cloud Armor + Cloud LB    │
-                  │  (Global Anycast)          │
-                  │  us-central1               │
-                  └─────────────┬──────────────┘
-                                │ PSC Consumer
-                                ↓
-            ┌───────────────────────────────────────────┐
-            │  APIGEE MANAGED RUNTIME (Provider VPC)    │
-            │  - Non-peered, provider-controlled        │
-            │  - Executes policies, routes requests     │
-            │  - Cross-regional managed service         │
-            └──────────────┬────────────────────────────┘
-                           │ PSC Producer/Service Attachment
-                           ↓
-        ┌──────────────────────────────────────────────────┐
-        │        SPOKE VPC — API Platform (10.80.0.0/16)   │
-        │                                                  │
-        │  ┌─────────────────────────────────────────────┐ │
-        │  │  PSC Endpoint / Subnet (10.80.1.0/28)       │ │
-        │  │  - Private IP for inbound/outbound traffic  │ │
-        │  └────────────┬────────────────────────────────┘ │
-        │               │                                  │
-        │         Private routing (VPC)                    │
-        │               │                                  │
-        │  ┌────────────┴───────────────────────────────┐  │
-        │  │  Backend Regional Subnet (10.80.2.0/24)    │  │
-        │  │  - Cloud Run services                      │  │
-        │  │  - Network Endpoint Groups (NEG)           │  │
-        │  │  - Internal LB                             │  │
-        │  └────────────────────────────────────────────┘  │
-        │                                                  │
-        └───────────────┬──────────────────────────────────┘
-                        │ VPC Peering / Transit routing
-                        ↓
-        ┌──────────────────────────────────────────────────┐
-        │        HUB VPC — Shared Services (10.20.0.0/16)  │
-        │                                                  │
-        │  ┌─────────────────────────────────────────────┐ │
-        │  │  Cloud VPN Gateway                          │ │
-        │  │  - Hybrid connectivity                      │ │
-        │  │  - On-premises routing                      │ │
-        │  └────────────┬────────────────────────────────┘ │
-        │               │                                  │
-        └───────────────┼──────────────────────────────────┘
-                        │ IPSec Tunnel
-                        ↓
-        ┌──────────────────────────────────────────────────┐
-        │        ON-PREMISES NETWORK                       │
-        │  - Business systems (Java applications, DBs)     │
-        │  - Existing infrastructure                       │
-        └──────────────────────────────────────────────────┘
-```
+When this document and `challenge.md` conflict, `challenge.md` has priority. Official Google Cloud / Apigee documentation is authoritative for product behavior and implementation capabilities.
 
 ---
 
 
-## 3. Detailed Component Description
+## 2. Priority Order
 
-### 3.1 External Ingress Layer
-
-**Component:** Google Cloud Armor + External Application Load Balancer
-
-**Location:** Global (us-central1 backend)
-
-**Purpose:**
-- Protect the API runtime from DDoS and common web attacks
-- Provide a single, globally reachable HTTPS endpoint
-- Enforce security policies before traffic reaches Apigee
-- Handle SSL/TLS termination for external clients
-
-**Configuration:**
-- HTTPS listener on port 443
-- HTTP/2 support
-- Cloud Armor security policies (WAF rules)
-- Managed certificates or customer-owned certificates
-- Health checks to backend PSC endpoint
-
-**Security Properties:**
-- Filters malicious traffic at the edge
-- No direct exposure of backend services
-- Encrypted transport for all external traffic
-
----
+The project is optimized according to the following priorities:
 
 
-### 3.2 Apigee Managed Runtime
+### Priority 1 — Deliverability in a few days
 
-**Provider:** Google Cloud (Apigee)
+The solution must be practical, focused, and small enough to implement, validate, document, and present within the available time.
 
-**Network Model:** Provider-managed, non-peered environment
+Avoid:
 
-**Purpose:**
-- Execute API policies (authentication, rate limiting, transformation, etc.)
-- Provide single point of API management and governance
-- Isolate customer traffic from other tenants
-- Manage API versioning and deployment
-
-**Key Properties:**
-- **Boundary:** Provider controls the runtime instance; customer cannot directly access internal subnets
-- **Connectivity:** Ingress via PSC consumer (from LB), egress via PSC producer (to backends)
-- **Cross-Region:** Multi-region managed service (automatic failover, no customer configuration required)
-- **Addressing:** Provider-assigned; customer has no control over Apigee's internal IPs
-- **Policies:** Customer configures policies (condition, flow rules, targets) via deployment or UI
-
-**Traffic Semantics:**
-- Inbound: External LB → PSC Consumer → Apigee Runtime
-  - Source: Client IP (via LB)
-  - Destination: Apigee service endpoint
-  - Protocol: HTTP/1.1 or HTTP/2
-  
-- Outbound: Apigee Runtime → PSC Producer → Private backends
-  - Source: Apigee-assigned IP (provider range, not customer range)
-  - Destination: Backend IP inside spoke VPC
-  - Protocol: HTTP/HTTPS or custom protocols
-
----
+- Unnecessary multi-region complexity. keep things single region like the Load balancer. 
+- Unnecessary Kubernetes/GKE infrastructure. We`ll be working with Cloud Run. 
+- Unnecessary custom networking components
+- Unnecessary services that do not help satisfy the exercise
+- Over-engineering for hypothetical production requirements
 
 
-### 3.3 Private Service Connect (PSC) — Connectivity Mechanism
+### Priority 2 — Security
 
-**Service:** Google Cloud Private Service Connect
+Security receives deliberate attention without sacrificing delivery speed.
 
-**Purpose:** Bridge provider-managed runtime to customer-controlled networks without exposing provider infrastructure or assigning organization IPs to the runtime.
+The design must protect the API edge, prevent direct backend exposure, use least-privilege IAM, protect secrets, use TLS, and make trust boundaries explicit.
 
-**Two-Sided Connection:**
 
-**Inbound PSC (Apigee Consumer):**
-- External LB acts as PSC consumer
-- Connects to Apigee managed service via private, GCP-internal network path
-- No internet routing, no VPN, no peering required
-- Automatic DNS resolution to provider endpoint
+### Priority 3 — Architectural correctness and requirement coverage
 
-**Outbound PSC (Apigee Producer → Backend):**
-- Apigee acts as PSC producer when reaching private backends
-- Customer creates Service Attachment in spoke VPC
-- Apigee connects via private IP to the backend network
-- Backends appear as "local" to Apigee (no public IP required)
+Every important component must directly support a requirement, a documented assumption, or a necessary technical dependency.
 
-**Addressing:**
-- PSC inbound: 10.80.1.0/28 (2-4 private IPs reserved for PSC endpoint)
-- PSC outbound: Apigee → Service Attachment
-  - Source: Apigee-assigned provider range (e.g., 10.90.0.0/16 — **non-overlapping** with customer networks)
-  - Destination: Backend subnet 10.80.2.0/24
+The final design must correctly solve:
+
+- northbound traffic into the managed runtime
+- southbound traffic toward private backends
+- private connectivity
+- transition into the internal network
+- non-transitive connectivity
+- non-overlapping addressing
+- secure API exposure
+- hybrid/on-premises reachability
+
+
+### Priority 4 — Reproducibility and implementation quality
+
+Terraform is the infrastructure source of truth.
+
+The final environment must be reproducible and changes must not depend on undocumented manual console configuration.
+
+
+### Priority 5 — Validation and observability
+
+The project must provide enough monitoring, logging, tracing, and functional validation to demonstrate that the architecture actually works and to investigate latency and connectivity failures.
+
+
+### Priority 6 — Documentation and oral-defense readiness
+
+Documentation should explain the selected design and trade-offs clearly without becoming a large documentation project.
+
+The final architecture must be explainable without AI assistance.
 
 ---
 
 
-### 3.4 Spoke VPC — API Platform
+## 3. Company Requirements
 
-**CIDR:** 10.80.0.0/16
+See `challenge.md` for the verbatim Rocket Code requirements.
 
-**Region:** us-central1 (primary), us-east1 (secondary for HA)
+The supplied diagram establishes the following context:
 
-**Purpose:** Dedicated VPC for the new API platform, isolating it from existing organizational networks.
-
-**Subnets:**
-
-| Subnet Name | CIDR | Size | Purpose | Region |
-|---|---|---:|---|---|
-| psc-endpoint-subnet | 10.80.1.0/28 | 16 IPs | PSC endpoint (inbound/outbound) | us-central1 |
-| backend-primary | 10.80.2.0/24 | 256 IPs | Cloud Run, app services | us-central1 |
-| backend-secondary | 10.80.3.0/24 | 256 IPs | Cloud Run, app services | us-east1 |
-| management | 10.80.100.0/24 | 256 IPs | Operator access, logging | us-central1 |
-
-**Routing:**
-- Local routes: Internal VPC routing via primary/secondary ranges
-- Hub VPC route: 10.80.0.0/16 → Hub VPC peering for on-premises traffic
-- PSC route: Backend traffic to PSC endpoint (automatic GCP routing)
-
----
+- external clients
+- a new API project / spoke that we design
+- an external entry point protected by a WAF
+- an API VPC
+- a provider-managed tenant outside our VPC
+- a provider-managed API runtime whose IP addressing is not controlled by us
+- a new application platform/project using containers and managed services. We`ll use Cloud Run for this. 
+- an existing central Hub VPC
+- on-premises core business systems
+- a Java application server
+- a relational database
 
 
-### 3.5 Hub VPC — Shared Services & Hybrid Connectivity
+The exercise specifically asks the design to determine:
 
-**CIDR:** 10.20.0.0/16
+- how traffic enters the managed runtime
+- how traffic returns toward backends
+- which private connectivity artifacts are used
+- which special subnets are required
+- where traffic transitions to the internal network
 
-**Purpose:** Central hub for organizational services and on-premises connectivity.
+The exercise prohibits:
 
-**Subnets:**
-
-| Subnet Name | CIDR | Size | Purpose |
-|---|---|---:|---|
-| vpn-gateway-subnet | 10.20.1.0/29 | 8 IPs | Cloud VPN gateway interface |
-| shared-services | 10.20.2.0/24 | 256 IPs | Centralized services |
-
-**Connectivity:**
-- VPC Peering: Spoke VPC ↔ Hub VPC (bidirectional)
-- Cloud VPN: Hub VPC ↔ On-Premises (IPSec tunnel)
+- direct Internet exposure of backends
+- assigning organizational IPs to the managed runtime
+- assuming the provider routes arbitrary private customer CIDRs
+- solving transitively with additional VPC peerings
+- overlapping existing network ranges
+- manual configuration instead of reproducible IaC. We`ll be using Terraform for deployment. 
 
 ---
 
 
-### 3.6 On-Premises Network
+## 4. Architectural Principles
 
-**CIDR:** 10.0.0.0/8 (assumed; customer must specify actual range)
-
-**Purpose:** Existing organizational infrastructure (Java applications, databases, business systems).
-
-**Connectivity:**
-- Cloud VPN tunnel terminates in hub VPC
-- Routes for on-prem services learned via VPN or static routes
-- Return traffic automatically routed back through VPN tunnel
+1. **Private by default.**
+2. **No direct public backend exposure.**
+3. **Provider-managed Apigee remains outside the customer VPC boundary.**
+4. **Private Service Connect is the primary connectivity mechanism between customer-controlled services and Apigee.**
+5. **Do not use transitive VPC peering.**
+6. **Terraform is the source of truth.**
+7. **Use managed services where they materially reduce operational work.**
+8. **Keep one primary region for the exercise.**
+9. **Assumptions are explicit and testable.**
+10. **Every major component must have a documented reason to exist.**
 
 ---
 
-## 4. Traffic Flows
+## 5. Selected Architecture
 
-### 4.1 External Client → API → Cloud Backend
+### 5.1 API Management Networking Model
 
-```
-1. Internet Client                                (e.g., 203.0.113.5:54321)
-   ↓ HTTPS request (api.example.com)
-   
-2. Cloud Armor + External LB                      (Global Anycast IP, e.g., 34.X.X.X)
-   - Evaluate security policies
-   - Create PSC connection to Apigee (outbound)
-   
-3. PSC Inbound Path                               (10.80.1.0/28 → Apigee)
-   - Route: 10.80.1.0/28 CONSUME apigee.googleapis.com
-   - Source: LB internal IP
-   - Destination: Apigee managed service
-   
-4. Apigee Managed Runtime                         (Provider-controlled, non-VPC)
-   - Execute API policies:
-     * JWT validation (or API key auth)
-     * Rate limiting
-     * Request transformation
-     * Target assignment
-   - Resolve target backend service (from policy)
-   
-5. PSC Outbound Path                              (Apigee → Service Attachment)
-   - Source: Apigee-assigned IP (10.90.0.0/16 example)
-   - Destination: 10.80.2.0/24 (backend subnet)
-   - Route: Auto-discovered via Service Attachment
-   
-6. Backend Layer                                  (Cloud Run, NEG)
-   - Receive request on private IP
-   - Execute business logic
-   - Return response
-   
-7. Response Path (Reverse)
-   - Cloud backend → PSC Outbound → Apigee → PSC Inbound → LB → Client
-   - All encryption maintained end-to-end
+**Selected:** Apigee with **Non-VPC-peering networking**.
 
-Timeline: ~100–300ms (depending on backend processing)
+This is the baseline architecture decision.
+
+In the current Google Cloud documentation, the non-VPC-peering model uses Private Service Connect for:
+
+- northbound traffic from clients to Apigee
+- southbound traffic from Apigee to target services in customer-controlled projects
+
+It does not require dedicated customer IP ranges to be supplied for the Apigee organization during provisioning.
+
+Reference:
+
+- https://docs.cloud.google.com/apigee/docs/api-platform/get-started/networking-options
+- https://docs.cloud.google.com/apigee/docs/api-platform/architecture/overview
+
+This model aligns with the exercise because the managed runtime remains outside the customer VPC and we do not need to introduce VPC peering or assign customer address space to the runtime.
+
+---
+
+## 6. Regional Strategy
+
+### Selected primary region
+
+`us-south1`
+
+The exercise allows the candidate to define the region. `us-south1` is the current working region because the required managed services and the intended regional networking pattern are available there.
+
+The design is **regional**, not tied to one zone.
+
+Use a zone such as `us-south1-a` only when a specific zonal resource actually requires one.
+
+Do not force regional managed services into an artificial single-zone architecture.
+
+---
+
+## 7. High-Level Architecture
+
+```text
+                         EXTERNAL CLIENTS
+                                |
+                                | HTTPS
+                                v
+                  +-------------------------------+
+                  | Regional External Application |
+                  | Load Balancer                 |
+                  | Region: us-south1             |
+                  +---------------+---------------+
+                                  |
+                         Cloud Armor / WAF
+                                  |
+                                  v
+                         NORTHBOUND PSC
+                                  |
+                                  v
+                  +-------------------------------+
+                  | Provider-Managed Apigee       |
+                  | Non-VPC-Peering Architecture  |
+                  | Region: us-south1             |
+                  +---------------+---------------+
+                                  |
+                         API policies / routing
+                                  |
+                                  v
+                         SOUTHBOUND PSC
+                                  |
+                                  v
+                  +-------------------------------+
+                  | Private Producer / Backend    |
+                  | Connectivity Layer            |
+                  +---------------+---------------+
+                                  |
+                    +-------------+-------------+
+                    |                           |
+                    v                           v
+              +-----------+              +-------------+
+              | Cloud Run |              | Private /   |
+              | services  |              | Hybrid      |
+              +-----------+              | backends    |
+                                           +------+------+ 
+                                                  |
+                                                  v
+                                           +-------------+
+                                           | Hub VPC     |
+                                           | Central     |
+                                           +------+------+ 
+                                                  |
+                                               VPN /     
+                                             hybrid link
+                                                  |
+                                                  v
+                                           +-------------+
+                                           | On-Premises  |
+                                           | Java + DB    |
+                                           +-------------+
 ```
 
+This is the conceptual architecture. The exact Terraform resource topology must be validated against current Google Cloud / Apigee capabilities before implementation is considered complete.
+
 ---
 
-### 4.2 API → On-Premises Backend
+## 8. Northbound Traffic
 
-```
-1. Apigee Runtime (after policy execution)        (Provider-controlled)
-   - Determine target: internal backend (on-prem)
-   - Resolve DNS or static route for on-prem service
-   
-2. PSC Outbound Path                              (Apigee → Service Attachment)
-   - Source: Apigee-assigned IP
-   - Destination: Spoke VPC backend (10.80.2.0/24)
-   
-3. Spoke VPC Internal Routing                     (10.80.0.0/16)
-   - Route destined for on-prem (e.g., 10.1.0.0/16)
-   - Next hop: Hub VPC peering gateway
-   
-4. VPC Peering                                    (Spoke ↔ Hub)
-   - Spoke routing table: 10.1.0.0/16 → hub-peering-gateway
-   - Hub routing table: 10.80.0.0/16 → spoke-peering-gateway
-   - Peering exchange: EXPORT_CUSTOM_ROUTES, IMPORT_CUSTOM_ROUTES
-   
-5. Hub VPC Routing                                (10.20.0.0/16)
-   - Route for on-prem (e.g., 10.1.0.0/16)
-   - Next hop: Cloud VPN gateway
-   
-6. Cloud VPN Tunnel                               (IPSec, user-managed VPN)
-   - Encryption: Phase 1 (IKEv2), Phase 2 (AES-GCM)
-   - Source: 10.80.x.x or 10.20.x.x (from hub subnet)
-   - Destination: 10.1.0.0/16 (on-prem)
-   
-7. On-Premises Network
-   - Receive request on private IP
-   - Process (access DB, business logic)
-   - Return response through reverse path
-   
-8. Response Path
-   - On-prem → VPN tunnel → Hub → Spoke → Apigee → External LB → Client
+Northbound means traffic from API consumers toward Apigee.
 
-Timeline: ~200–500ms (VPN latency + business logic)
+### Selected flow
+
+```text
+External Client
+    |
+    | HTTPS
+    v
+Regional External Application Load Balancer
+    |
+    | Cloud Armor policy
+    v
+Private Service Connect
+    |
+    v
+Apigee Managed Runtime
 ```
 
+The regional external Application Load Balancer provides the controlled Internet-facing entry point.
+
+Cloud Armor provides the edge/WAF policy associated with the load-balancing layer.
+
+PSC connects the customer-controlled load-balancing path to the Apigee service attachment.
+
+Google currently documents non-VPC-peering Apigee with PSC northbound routing through an external or regional external Application Load Balancer. The classic global external HTTP(S) load balancer is not the target for this architecture.
+
+References:
+
+- https://docs.cloud.google.com/apigee/docs/api-platform/system-administration/northbound-networking-psc
+- https://docs.cloud.google.com/apigee/docs/api-platform/get-started/install-cli-non-peered-eval
+
 ---
 
-### 4.3 Operator Access (Administrative)
+## 9. Southbound Traffic
 
+Southbound means traffic from Apigee toward API target services.
+
+### Selected conceptual flow
+
+```text
+Apigee Managed Runtime
+    |
+    v
+PSC Endpoint Attachment
+    |
+    v
+PSC Service Attachment
+    |
+    v
+Customer-controlled private producer / backend layer
+    |
+    +------> Cloud Run
+    |
+    +------> private cloud backend
+    |
+    +------> hybrid backend path
 ```
-1. Operator (within Spoke VPC or via Cloud Identity / Admin Console)
-   
-2. Access Terraform deployments:
-   - Service account authentication (JSON key or Workload Identity)
-   - Terraform state in Cloud Storage (encrypted, versioned)
-   
-3. Access Apigee management:
-   - Apigee API via service account (OAuth 2.0)
-   - Deploy policies, manage traffic targets
-   
-4. Access backend services:
-   - Cloud Run service via internal LB (if needed)
-   - Or via Cloud Shell / Identity-Aware Proxy (IAP)
-   
-5. Logging / Monitoring:
-   - Cloud Logging (centralized)
-   - Cloud Monitoring (metrics, dashboards)
-   - Service account reads logs (least privilege)
+
+For southbound PSC, the customer-controlled target side publishes the service through a service attachment, while Apigee uses an endpoint attachment in the Apigee VPC.
+
+The exact producer-side load-balancing pattern must be validated before implementation.
+
+References:
+
+- https://docs.cloud.google.com/apigee/docs/api-platform/architecture/southbound-networking-patterns-endpoints
+- https://docs.cloud.google.com/apigee/docs/api-platform/troubleshoot/playbooks/network-configuration/connectivity-with-sb-psc-targets
+
+---
+
+## 10. Cloud Run Backend
+
+Cloud Run is the selected application runtime for the cloud backend portion of the exercise.
+
+Reasons:
+
+- container-based
+- fully managed
+- less operational overhead than GKE
+- sufficient for the exercise
+- supports Serverless NEGs and load-balancing patterns
+- keeps the implementation small
+
+Cloud Run must not become a public bypass around the API management architecture.
+
+Where Cloud Run is exposed through an external load balancer, use the appropriate restricted ingress setting so direct Internet requests to the default `run.app` endpoint are not allowed.
+
+Reference:
+
+- https://docs.cloud.google.com/run/docs/securing/ingress
+- https://docs.cloud.google.com/load-balancing/docs/https/setting-up-reg-ext-https-serverless
+
+---
+
+## 11. Hybrid Connectivity
+
+The supplied diagram identifies an existing central Hub VPC and on-premises business systems.
+
+### Exercise assumption
+
+Use **Cloud VPN** as the baseline hybrid connectivity mechanism.
+
+This is a practical exercise-level assumption designed to demonstrate private reachability without introducing the additional complexity of Dedicated Interconnect.
+
+For a production design with materially higher throughput, deterministic performance, or stronger availability requirements, Interconnect would be evaluated separately.
+
+Conceptual path:
+
+```text
+Private Backend Layer
+        |
+        v
+     Hub VPC
+        |
+        v
+   Cloud VPN
+        |
+        v
+   On-Premises
+        |
+    +---+---+
+    |       |
+    v       v
+ Java App  RDBMS
 ```
 
----
-
-## 5. Security Boundaries
-
-### 5.1 Trust Boundaries
-
-**Boundary 1: Internet ↔ Cloud Armor**
-- Untrusted external traffic
-- Cloud Armor enforces policies
-- Transition: HTTPS encryption
-
-**Boundary 2: Cloud Armor ↔ Apigee**
-- Processed external traffic (after WAF)
-- PSC private path (GCP network, not internet)
-- Transition: Authenticated via PSC (provider handles isolation)
-
-**Boundary 3: Apigee ↔ Customer Networks**
-- Apigee (provider-managed) ↔ Spoke VPC (customer-managed)
-- PSC Producer / Service Attachment provides isolation
-- Apigee uses non-customer IP range (10.90.0.0/16 assumed)
-- Transition: Connectivity only through PSC endpoint
-
-**Boundary 4: Spoke VPC ↔ Hub VPC**
-- API platform (new) ↔ Shared organizational services
-- VPC peering with controlled route export/import
-- Transition: Private VPC peering
-
-**Boundary 5: Hub VPC ↔ On-Premises**
-- GCP (hub) ↔ On-premises (external VPN endpoint)
-- Cloud VPN encryption
-- Transition: IPSec tunnel with mutual authentication
+The design must document how routes are propagated between the customer network, Hub VPC, VPN, and on-premises ranges.
 
 ---
 
-### 5.2 Network Boundaries
+## 12. Security Architecture
 
-Each network segment is isolated by firewall rules, routing policies, and service connectivity:
+Security is the second project priority after delivery speed.
 
-- **External** → Filtered by Cloud Armor
-- **PSC Inbound** → Encrypted transit, provider-managed
-- **Apigee** → Provider boundary (no direct access, not addressable by customer)
-- **Spoke VPC** → Private IP only, firewall rules enforce egress/ingress
-- **Hub VPC** → Private IP only, VPN-gated for external connectivity
-- **On-Prem** → IPSec tunnel, VPN authentication required
+### 12.1 Perimeter
 
----
+- Regional External Application Load Balancer
+- Cloud Armor
+- TLS
+- controlled public entry point
 
-## 6. Addressing Summary
+### 12.2 API security
 
-| Network | CIDR | Size | Provider | Notes |
-|---|---|---:|---|---|
-| Spoke VPC | 10.80.0.0/16 | 65,536 IPs | Customer | New API platform |
-| PSC Endpoint | 10.80.1.0/28 | 16 IPs | Customer (within spoke) | Reserved for PSC |
-| Backend Primary | 10.80.2.0/24 | 256 IPs | Customer | us-central1 backends |
-| Backend Secondary | 10.80.3.0/24 | 256 IPs | Customer | us-east1 backends |
-| Management Subnet | 10.80.100.0/24 | 256 IPs | Customer | Operations/logging |
-| Hub VPC | 10.20.0.0/16 | 65,536 IPs | Customer | Existing shared services |
-| VPN Gateway Subnet | 10.20.1.0/29 | 8 IPs | Customer | Within hub |
-| On-Premises | 10.0.0.0/8 | 16M+ IPs | Customer | Assumed existing |
-| Apigee (Assumed) | 10.90.0.0/16 | 65,536 IPs | Provider | Non-overlapping, provider-managed |
+Apigee is the API management and policy enforcement boundary.
 
-**Non-overlap verification:** No CIDR ranges conflict under the stated assumptions. Customer manages 10.0.0.0/8 and 10.20.0.0/16; new speak VPC uses 10.80.0.0/16; Apigee uses separate provider range.
+The implementation should use an authentication/authorization mechanism appropriate to the assumed client population and document the assumption.
 
----
+Possible mechanisms to evaluate include:
 
-## 7. High Availability & Disaster Recovery
+- OAuth 2.0 / OIDC
+- JWT validation
+- API keys where justified
+- mTLS where justified by the threat model
 
-### 7.1 API Runtime (Apigee)
-- **Managed by provider:** Multi-region, automatic failover across data centers
-- **Customer responsibility:** None
-- **SLA:** Typically 99.95% (per Apigee SLA)
+Do not add authentication mechanisms only for appearance.
 
-### 7.2 External LB + Cloud Armor
-- **Multi-region:** Global anycast, automatic routing to closest edge location
-- **Cross-zone:** Multiple backends across us-central1 and us-east1 (via backends)
+### 12.3 Backend security
 
-### 7.3 Cloud Run Backends
-- **Multi-region deployment:** Identical services in us-central1 and us-east1
-- **Traffic split:** LB routes to regionally closest instance
-- **Failover:** Automatic if region becomes unhealthy
+- backend services must not be directly exposed to the Internet
+- Cloud Run ingress must be restricted appropriately
+- private connectivity is preferred
+- service identity and IAM must follow least privilege
+- secrets must use Secret Manager
 
-### 7.4 Cloud VPN (On-Premises Connectivity)
-- **Redundancy:** Dual tunnels (Active-Active or Active-Passive)
-- **On-premises side:** Customer must provide redundant VPN endpoints
-- **Failover:** Automatic by BGP or static route fallover
+### 12.4 IAM
 
----
+Use dedicated identities for:
 
-## 8. Implementation Notes
+- Terraform / deployment
+- runtime services
+- supporting automation
 
-**Terraform modules:** 
-- `networking/` — VPC, subnets, routing, peering
-- `psc/` — Service Attachment, PSC endpoint configuration
-- `apigee/` — Apigee organization, environment, API deployments
-- `cloud-run/` — Cloud Run services, NEG configuration
-- `load-balancer/` — External LB, Cloud Armor policies
-- `hybrid-connectivity/` — Cloud VPN, on-premises routing
-- `iam/` — Service accounts, IAM bindings
-- `observability/` — Logging, monitoring, alerts
+Avoid broad primitive roles where more specific predefined roles are practical.
 
-**State management:** Remote state in Cloud Storage, encrypted, with versioning enabled.
+### 12.5 Secrets
 
-**Deployment flow:**
-1. Deploy networking (VPC, subnets)
-2. Deploy PSC infrastructure
-3. Deploy backend services (Cloud Run)
-4. Deploy Apigee organization + environment
-5. Deploy ingress (LB + Cloud Armor)
-6. Deploy hybrid connectivity (Cloud VPN)
-7. Validate traffic flows end-to-end
-8. Enable monitoring and logging
+Secrets are stored in Google Secret Manager.
+
+Do not commit:
+
+- passwords
+- tokens
+- API secrets
+- private keys
+- service-account private keys
+
+### 12.6 TLS
+
+Document:
+
+- where external TLS terminates
+- which connections remain encrypted after termination
+- certificate ownership
+- certificate lifecycle
+- whether mTLS is actually required
 
 ---
 
-## 9. Validation & Testing
+## 13. Addressing Strategy
 
-See `docs/operations/deployment-and-validation.md` for detailed validation procedures.
+All customer-controlled CIDRs must be non-overlapping.
+
+Before finalizing new ranges, inventory:
+
+- existing API VPC ranges
+- existing Hub VPC ranges
+- assumed on-premises ranges
+- PSC-specific ranges
+- any service-specific reserved ranges
+
+The exercise does not provide exact existing CIDRs, so any unknown existing ranges must be explicitly declared as assumptions.
+
+The final addressing document will contain:
+
+| Network / Subnet | CIDR | Size | Purpose | Region | Owner | Notes |
+|---|---|---:|---|---|---|---|
+| API VPC subnet(s) | TBD | TBD | API connectivity | us-south1 | Customer | Non-overlapping |
+| PSC-related subnet/range | TBD | TBD | PSC connectivity | us-south1 | Customer | Validate service requirement |
+| Backend subnet(s) | TBD | TBD | Private backend resources if needed | us-south1 | Customer | Minimize unnecessary ranges |
+| Hub VPC | ASSUMED | ASSUMED | Existing central network | Existing | Customer | Must not overlap |
+| On-premises | ASSUMED | ASSUMED | Existing internal network | On-prem | Organization | Must not overlap |
+
+Do not invent unknown production ranges and represent them as factual.
+
+---
+
+## 14. Latency and Observability
+
+The source diagram explicitly states that the on-premises environment experiences high latency during peak hours.
+
+The architecture must not claim that a load balancer automatically eliminates this latency.
+
+Instead, observability must identify where latency occurs.
+
+Use, as practical:
+
+- Cloud Monitoring
+- Cloud Logging
+- Cloud Trace
+- Apigee telemetry / analytics
+- Load Balancer logging
+- Cloud Armor logging
+- Cloud Run telemetry
+- relevant network telemetry
+
+The investigation path should be:
+
+```text
+Client
+  -> Load Balancer
+  -> PSC
+  -> Apigee
+  -> PSC
+  -> Backend
+  -> Hub
+  -> VPN
+  -> On-Prem Java Application
+  -> Database
+```
+
+The project should use telemetry to distinguish:
+
+- edge latency
+- API gateway processing time
+- backend application latency
+- hybrid-network latency
+- database latency
+
+The practical objective is not to build a complete enterprise observability platform. It is to collect enough evidence to validate the architecture and explain the high-latency scenario intelligently.
+
+---
+
+## 15. Trust Boundaries
+
+The architecture has at least these major trust boundaries:
+
+1. Internet / external clients → customer-controlled API edge.
+2. Customer-controlled API edge → provider-managed Apigee environment.
+3. Provider-managed Apigee → customer-controlled backend producer.
+4. Customer cloud networks → central Hub VPC.
+5. GCP Hub → on-premises network.
+6. Application services → data services.
+7. Human/operator identities → cloud control plane.
+
+The provider-managed Apigee environment must remain visually and conceptually outside the customer's VPC.
+
+---
+
+## 16. Network Boundaries
+
+The final diagram must clearly distinguish:
+
+### Customer-controlled
+
+- API project/spoke
+- customer VPC
+- external load balancer
+- Cloud Armor policy
+- PSC customer-side resources
+- Cloud Run project/service
+- Hub VPC
+- hybrid connectivity resources
+
+### Provider-controlled
+
+- Apigee managed tenant
+- Apigee managed runtime
+- provider-side service attachment / infrastructure as documented
+
+### External / outside GCP
+
+- Internet clients
+- on-premises network
+
+Do not draw Apigee as if it were simply another subnet inside the customer VPC.
+
+---
+
+## 17. Important Architectural Questions to Validate
+
+These are implementation validation items, not assumptions to hide.
+
+### Northbound
+
+- Exact PSC NEG / service attachment configuration required by Apigee.
+- Regional external Application Load Balancer resource topology.
+- Certificate requirements.
+- DNS requirements.
+- Cloud Armor integration.
+- Health-check / failover behavior.
+
+### Southbound
+
+- Exact endpoint attachment configuration.
+- Exact producer load balancer required for the target service.
+- Cloud Run Serverless NEG compatibility in the selected topology.
+- Required producer subnet and PSC subnet.
+- Global access requirements if producer and consumer regions differ.
+- Target port and protocol requirements.
+- Return traffic behavior.
+
+### Hybrid
+
+- Route propagation.
+- Cloud VPN topology.
+- On-prem destination prefixes.
+- Return routes.
+- Firewall rules.
+
+### Terraform
+
+- Current Google provider support for each selected resource.
+- Required APIs.
+- Resource dependency ordering.
+- Whether any provisioning action remains CLI-only or has a documented Terraform equivalent.
+
+Any unresolved technical dependency must remain marked `UNVERIFIED` until validated.
+
+---
+
+## 18. Design Scope Control
+
+The following are intentionally out of scope unless `challenge.md` or an implementation dependency makes them necessary:
+
+- multi-region production architecture
+- GKE/Kubernetes
+- service mesh
+- enterprise-scale API developer portal
+- full CI/CD platform redesign
+- complex enterprise WAN redesign
+- advanced disaster recovery program
+- large-scale data platform
+- unnecessary microservice decomposition
+- custom proxies or VM-based network bridges when PSC provides the required connectivity
+
+The goal is a convincing technical exercise, not a complete enterprise platform.
+
+---
+
+## 19. Expected Implementation Sequence
+
+1. Inspect current repository and Terraform.
+2. Compare current implementation with `challenge.md`.
+3. Validate Apigee Non-VPC-peering + PSC capabilities.
+4. Finalize northbound topology.
+5. Finalize southbound topology.
+6. Finalize Cloud Run backend pattern.
+7. Finalize hybrid connectivity assumption.
+8. Finalize CIDRs and special subnet requirements.
+9. Implement Terraform.
+10. Validate deployment and connectivity.
+11. Add security controls.
+12. Add practical observability.
+13. Produce E1–E5 supporting artifacts.
+14. Perform an oral-defense review.
+
+Do not spend significant time polishing diagrams or documentation before the networking path is technically validated.
+
+---
+
+## 20. Success Criteria
+
+The architecture is considered successful when we can demonstrate, with evidence:
+
+- an external client can reach the API through the intended secure entry point
+- traffic reaches Apigee through the selected PSC architecture
+- Apigee can reach the selected private backend through southbound PSC
+- the backend is not directly exposed to the Internet
+- the Cloud Run service cannot be used as a public bypass
+- private backend connectivity is reproducible through Terraform
+- the intended path toward on-premises is private and documented
+- CIDRs are non-overlapping under stated assumptions
+- IAM and secrets are appropriately controlled
+- logs/metrics/traces provide useful validation evidence
+- the entire architecture can be explained clearly during the oral defense
+
+---
+
+## 21. Final Architecture Statement
+
+The target solution is a **single-region, practical GCP API platform** using:
+
+- **Apigee without VPC peering**
+- **Private Service Connect for northbound and southbound connectivity**
+- **Regional External Application Load Balancer for external API entry**
+- **Cloud Armor for WAF/perimeter protection**
+- **Cloud Run for the cloud application runtime**
+- **Hub VPC for central internal connectivity**
+- **Cloud VPN as the exercise-level hybrid connectivity assumption**
+- **Cloud Monitoring, Logging and Trace for practical observability**
+- **Secret Manager and least-privilege IAM for security**
+- **Terraform as the reproducible infrastructure source of truth**
+
+The architecture deliberately avoids VPC peering between the API project and the provider-managed Apigee environment and avoids exposing the backend tier directly to the Internet.
+
+The exact PSC resource topology and Terraform implementation must be validated against current official documentation before being treated as final.
+
+---
+
+## 22. Primary References
+
+Google Cloud / Apigee official documentation:
+
+- Apigee networking options: https://docs.cloud.google.com/apigee/docs/api-platform/get-started/networking-options
+- Apigee architecture overview: https://docs.cloud.google.com/apigee/docs/api-platform/architecture/overview
+- Apigee northbound PSC: https://docs.cloud.google.com/apigee/docs/api-platform/system-administration/northbound-networking-psc
+- Apigee southbound PSC: https://docs.cloud.google.com/apigee/docs/api-platform/architecture/southbound-networking-patterns-endpoints
+- Apigee non-peering provisioning: https://docs.cloud.google.com/apigee/docs/api-platform/get-started/install-cli-non-peered-eval
+- Cloud Run ingress: https://docs.cloud.google.com/run/docs/securing/ingress
+- Regional external Application Load Balancer with Cloud Run: https://docs.cloud.google.com/load-balancing/docs/https/setting-up-reg-ext-https-serverless
+- Cloud Armor: https://docs.cloud.google.com/armor/docs/integrating-cloud-armor
+
+The technical exercise requirements themselves remain in `challenge.md` and take precedence over this document where there is any conflict.
