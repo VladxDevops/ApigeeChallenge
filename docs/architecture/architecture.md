@@ -136,6 +136,7 @@ The exercise prohibits:
 
 ## 5. Selected Architecture
 
+
 ### 5.1 API Management Networking Model
 
 **Selected:** Apigee with **Non-VPC-peering networking**.
@@ -160,6 +161,7 @@ This model aligns with the exercise because the managed runtime remains outside 
 
 ## 6. Regional Strategy
 
+
 ### Selected primary region
 
 `us-south1`
@@ -173,6 +175,7 @@ Use a zone such as `us-south1-a` only when a specific zonal resource actually re
 Do not force regional managed services into an artificial single-zone architecture.
 
 ---
+
 
 ## 7. High-Level Architecture
 
@@ -238,6 +241,7 @@ Do not force regional managed services into an artificial single-zone architectu
 This is the conceptual architecture. The exact Terraform resource topology must be validated against current Google Cloud / Apigee capabilities before implementation is considered complete.
 
 ---
+
 
 ## 8. Northbound Traffic
 
@@ -379,12 +383,14 @@ The design must document how routes are propagated between the customer network,
 
 Security is the second project priority after delivery speed.
 
+
 ### 12.1 Perimeter
 
 - Regional External Application Load Balancer
 - Cloud Armor
 - TLS
 - controlled public entry point
+
 
 ### 12.2 API security
 
@@ -401,6 +407,7 @@ Possible mechanisms to evaluate include:
 
 Do not add authentication mechanisms only for appearance.
 
+
 ### 12.3 Backend security
 
 - backend services must not be directly exposed to the Internet
@@ -408,6 +415,7 @@ Do not add authentication mechanisms only for appearance.
 - private connectivity is preferred
 - service identity and IAM must follow least privilege
 - secrets must use Secret Manager
+
 
 ### 12.4 IAM
 
@@ -418,6 +426,7 @@ Use dedicated identities for:
 - supporting automation
 
 Avoid broad primitive roles where more specific predefined roles are practical.
+
 
 ### 12.5 Secrets
 
@@ -431,6 +440,7 @@ Do not commit:
 - private keys
 - service-account private keys
 
+
 ### 12.6 TLS
 
 Document:
@@ -442,6 +452,7 @@ Document:
 - whether mTLS is actually required
 
 ---
+
 
 ## 13. Addressing Strategy
 
@@ -471,6 +482,7 @@ The current proposed addressing plan is maintained in `docs/networking/addressin
 Do not invent unknown production ranges and represent them as factual.
 
 ---
+
 
 ## 14. Latency and Observability
 
@@ -518,6 +530,7 @@ The practical objective is not to build a complete enterprise observability plat
 
 ---
 
+
 ## 15. Trust Boundaries
 
 The architecture has at least these major trust boundaries:
@@ -533,6 +546,7 @@ The architecture has at least these major trust boundaries:
 The provider-managed Apigee environment must remain visually and conceptually outside the customer's VPC.
 
 ---
+
 
 ## 16. Network Boundaries
 
@@ -564,9 +578,11 @@ Do not draw Apigee as if it were simply another subnet inside the customer VPC.
 
 ---
 
+
 ## 17. Important Architectural Questions to Validate
 
 These are implementation validation items, not assumptions to hide.
+
 
 ### Northbound
 
@@ -576,6 +592,7 @@ These are implementation validation items, not assumptions to hide.
 - DNS requirements.
 - Cloud Armor integration.
 - Health-check / failover behavior.
+
 
 ### Southbound
 
@@ -587,6 +604,7 @@ These are implementation validation items, not assumptions to hide.
 - Target port and protocol requirements.
 - Return traffic behavior.
 
+
 ### Hybrid
 
 - Route propagation.
@@ -594,6 +612,7 @@ These are implementation validation items, not assumptions to hide.
 - On-prem destination prefixes.
 - Return routes.
 - Firewall rules.
+
 
 ### Terraform
 
@@ -605,6 +624,7 @@ These are implementation validation items, not assumptions to hide.
 Any unresolved technical dependency must remain marked `UNVERIFIED` until validated.
 
 ---
+
 
 ## 18. Design Scope Control
 
@@ -646,6 +666,7 @@ Do not spend significant time polishing diagrams or documentation before the net
 
 ---
 
+
 ## 20. Success Criteria
 
 The architecture is considered successful when we can demonstrate, with evidence:
@@ -663,6 +684,7 @@ The architecture is considered successful when we can demonstrate, with evidence
 - the entire architecture can be explained clearly during the oral defense
 
 ---
+
 
 ## 21. Final Architecture Statement
 
@@ -684,6 +706,7 @@ The architecture deliberately avoids VPC peering between the API project and the
 The exact PSC resource topology and Terraform implementation must be validated against current official documentation before being treated as final.
 
 ---
+
 
 ## 22. Primary References
 
