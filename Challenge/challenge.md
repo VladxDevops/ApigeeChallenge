@@ -1,3 +1,32 @@
++++
+title = "Rocket Code Technical Exercise Requirements"
+domain = "requirements"
+tier = 1
+topics = ["requirements", "challenge", "exercise", "apigee", "constraints", "deliverables"]
+parent = "README.md"
+children = []
+related = [
+    "README.md",
+    "AGENTS.md",
+    "docs/decisions/architecture-decisions.md",
+    "docs/assumptions/assumptions-risks-tradeoffs.md"
+]
+updated_by = "Antigravity AI"
+version = "1.1"
++++
+
+> **Parent**: [`README.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/README.md)
+> **Manifest**: [`AI_MANIFEST.toml`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/AI_MANIFEST.toml)
+> **Architecture Decisions**: [`architecture-decisions.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/docs/decisions/architecture-decisions.md)
+> **Assumptions**: [`assumptions-risks-tradeoffs.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/docs/assumptions/assumptions-risks-tradeoffs.md)
+
+<!-- AI RETRIEVAL HINTS:
+- Purpose: Canonical, unmodified technical exercise requirements from Rocket Code.
+- Questions Answered: What are the exact deliverables? What are the hard constraints? What does the evaluator expect? What components must be included?
+- When to Retrieve: Verifying compliance with exercise requirements, reviewing evaluation criteria, or orienting a new agent on the objective.
+- When NOT to Retrieve: When reading the current architectural design (use docs/architecture/) or the implementation plan (use AGENTS.md).
+-->
+
 Introducción
 Como parte del proceso de evaluación para la vacante de Cloud Engineer DevOps en
 rocket code, te compartimos este ejercicio técnico para conocer tu capacidad de

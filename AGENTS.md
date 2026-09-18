@@ -1,3 +1,32 @@
++++
+title = "Agent Operating Contract — Apigee Challenge"
+domain = "governance"
+tier = 1
+topics = ["agents", "governance", "rules", "multi-agent", "operating-contract"]
+parent = "README.md"
+children = []
+related = [
+    "README.md",
+    "AI_MANIFEST.toml",
+    "Challenge/challenge.md",
+    "Agents/skills/Progressive-Disclosure/SKILL.md"
+]
+updated_by = "Antigravity AI"
+version = "1.1"
++++
+
+> **Parent**: [`README.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/README.md)
+> **Manifest**: [`AI_MANIFEST.toml`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/AI_MANIFEST.toml)
+> **Requirements**: [`Challenge/challenge.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/Challenge/challenge.md)
+> **Related**: [`changelog.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/changelog.md) | [`transcripts.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/transcripts.md)
+
+<!-- AI RETRIEVAL HINTS:
+- Purpose: Primary operating contract for all AI agents and human developers working on this repository.
+- Questions Answered: What are the non-negotiable constraints? What are the agent rules? What is the source-of-truth hierarchy? What is the required documentation structure?
+- When to Retrieve: At the start of any session, before making architectural decisions, or before modifying any document structure.
+- When NOT to Retrieve: When executing a specific, already-decided implementation task with no architectural ambiguity.
+-->
+
 # AGENTS.md — Cloud Engineer DevOps Technical Exercise
 
 ## 0. Purpose

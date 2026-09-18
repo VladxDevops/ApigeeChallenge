@@ -264,7 +264,7 @@ The regional external Application Load Balancer provides the controlled Internet
 
 Cloud Armor provides the edge/WAF policy associated with the load-balancing layer.
 
-PSC connects the customer-controlled load-balancing path to the Apigee service attachment.
+Private Service Connect (PSC) connects the customer-controlled load-balancing path to the Apigee service attachment.
 
 Google currently documents non-VPC-peering Apigee with PSC northbound routing through an external or regional external Application Load Balancer. The classic global external HTTP(S) load balancer is not the target for this architecture.
 
@@ -274,6 +274,7 @@ References:
 - https://docs.cloud.google.com/apigee/docs/api-platform/get-started/install-cli-non-peered-eval
 
 ---
+
 
 ## 9. Southbound Traffic
 
@@ -311,6 +312,7 @@ References:
 
 ---
 
+
 ## 10. Cloud Run Backend
 
 Cloud Run is the selected application runtime for the cloud backend portion of the exercise.
@@ -334,6 +336,7 @@ Reference:
 - https://docs.cloud.google.com/load-balancing/docs/https/setting-up-reg-ext-https-serverless
 
 ---
+
 
 ## 11. Hybrid Connectivity
 
@@ -370,6 +373,7 @@ Private Backend Layer
 The design must document how routes are propagated between the customer network, Hub VPC, VPN, and on-premises ranges.
 
 ---
+
 
 ## 12. Security Architecture
 
@@ -453,15 +457,16 @@ Before finalizing new ranges, inventory:
 
 The exercise does not provide exact existing CIDRs, so any unknown existing ranges must be explicitly declared as assumptions.
 
-The final addressing document will contain:
+The current proposed addressing plan is maintained in `docs/networking/addressing-plan.md` and uses the following exercise-level ranges:
 
 | Network / Subnet | CIDR | Size | Purpose | Region | Owner | Notes |
 |---|---|---:|---|---|---|---|
-| API VPC subnet(s) | TBD | TBD | API connectivity | us-south1 | Customer | Non-overlapping |
-| PSC-related subnet/range | TBD | TBD | PSC connectivity | us-south1 | Customer | Validate service requirement |
-| Backend subnet(s) | TBD | TBD | Private backend resources if needed | us-south1 | Customer | Minimize unnecessary ranges |
-| Hub VPC | ASSUMED | ASSUMED | Existing central network | Existing | Customer | Must not overlap |
-| On-premises | ASSUMED | ASSUMED | Existing internal network | On-prem | Organization | Must not overlap |
+| API VPC supernet | `10.80.0.0/16` | /16 | API spoke | us-south1 | Customer | Proposed, must validate against real IPAM. |
+| API private subnet | `10.80.0.0/24` | 256 IPs | Private backend/proxy resources | us-south1 | Customer | Regular subnet. |
+| Regional proxy-only subnet | `10.80.1.0/24` | 256 IPs | Regional Envoy load balancer proxies | us-south1 | Customer | `REGIONAL_MANAGED_PROXY`. |
+| PSC NAT subnet | `10.80.2.0/24` | 256 IPs | PSC producer NAT | us-south1 | Customer | `PRIVATE_SERVICE_CONNECT`. |
+| Hub VPC | `10.20.0.0/16` | /16 | Existing central network | Existing | Customer | Assumption. |
+| On-premises | `10.0.0.0/12` | /12 | Existing internal network | On-prem | Organization | Assumption. |
 
 Do not invent unknown production ranges and represent them as factual.
 

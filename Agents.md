@@ -1,3 +1,31 @@
++++
+title = "Legacy Agent Brief — Apigee Challenge"
+domain = "governance"
+tier = 1
+topics = ["agents", "mission", "constraints", "architecture-brief", "legacy"]
+parent = "README.md"
+children = []
+related = [
+    "AGENTS.md",
+    "README.md",
+    "docs/architecture/architecture.md",
+    "docs/decisions/architecture-decisions.md"
+]
+updated_by = "Antigravity AI"
+version = "1.1"
++++
+
+> **Parent**: [`README.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/README.md)
+> **Manifest**: [`AI_MANIFEST.toml`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/AI_MANIFEST.toml)
+> **Authoritative Contract**: [`AGENTS.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/AGENTS.md)
+
+<!-- AI RETRIEVAL HINTS:
+- Purpose: Original project-scoped agent brief describing the mission, architectural approach, constraints, and design priorities for the Apigee Challenge.
+- Questions Answered: What is the agent's mission? What are the hard architectural constraints? What is the chosen topology?
+- When to Retrieve: When the full AGENTS.md is too large and a compact design brief is needed, or for resolving architectural ambiguity about the original intent.
+- When NOT to Retrieve: For governance rules and agent operating constraints use AGENTS.md instead.
+-->
+
 1. Mission
 
 Design and implement a clear, secure, private, reproducible GCP architecture for the Rocket Code Cloud Engineer / DevOps technical exercise.
