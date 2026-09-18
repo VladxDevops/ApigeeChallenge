@@ -29,25 +29,23 @@ variable "terraform_deployer_service_account" {
   type        = string
 }
 
-#Variables for networking: 
+# Variables for networking and rightsized subnets:
 variable "api_vpc_cidr" {
   description = "Documentation-only supernet for the API spoke VPC."
   type        = string
 }
 
 variable "api_private_subnet_cidr" {
-  description = "Primary private subnet for API/backend resources in us-south1."
+  description = "Primary private subnet for API/backend resources in us-south1 (lean /28 allocation, 16 IPs total, 12 usable IPs)."
   type        = string
 }
 
 variable "proxy_only_subnet_cidr" {
-  description = "Regional managed proxy-only subnet for Envoy-based load balancers."
+  description = "Regional managed proxy-only subnet for Envoy-based load balancers (GCP enforced minimum /26, 64 IPs total, 60 usable proxy IPs)."
   type        = string
 }
 
 variable "psc_nat_subnet_cidr" {
-  description = "Private Service Connect NAT subnet for published services."
+  description = "Private Service Connect NAT subnet for published services (GCP minimum /29, 8 IPs total, 4 usable NAT IPs)."
   type        = string
 }
-
-###

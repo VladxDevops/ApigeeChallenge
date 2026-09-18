@@ -468,18 +468,21 @@ Before finalizing new ranges, inventory:
 
 The exercise does not provide exact existing CIDRs, so any unknown existing ranges must be explicitly declared as assumptions.
 
-The current proposed addressing plan is maintained in `docs/networking/addressing-plan.md` and uses the following exercise-level ranges:
+The current proposed addressing plan is maintained in `docs/networking/addressing-plan.md` and uses the following rightsized, GCP-compliant exercise-level ranges:
 
 | Network / Subnet | CIDR | Size | Purpose | Region | Owner | Notes |
 |---|---|---:|---|---|---|---|
 | API VPC supernet | `10.80.0.0/16` | /16 | API spoke | us-south1 | Customer | Proposed, must validate against real IPAM. |
-| API private subnet | `10.80.0.0/24` | 256 IPs | Private backend/proxy resources | us-south1 | Customer | Regular subnet. |
-| Regional proxy-only subnet | `10.80.1.0/24` | 256 IPs | Regional Envoy load balancer proxies | us-south1 | Customer | `REGIONAL_MANAGED_PROXY`. |
-| PSC NAT subnet | `10.80.2.0/24` | 256 IPs | PSC producer NAT | us-south1 | Customer | `PRIVATE_SERVICE_CONNECT`. |
+| API private subnet | `10.80.0.0/28` | 16 IPs (12 usable) | Private backend/ILB forwarding rules | us-south1 | Customer | Regular subnet (lean /28 allocation). |
+| PSC NAT subnet | `10.80.0.16/29` | 8 IPs (4 usable) | PSC producer NAT | us-south1 | Customer | `PRIVATE_SERVICE_CONNECT` (GCP minimum /29). |
+| Regional proxy-only subnet | `10.80.0.64/26` | 64 IPs (60 usable) | Regional Envoy load balancer proxies | us-south1 | Customer | `REGIONAL_MANAGED_PROXY` (GCP minimum /26). |
 | Hub VPC | `10.20.0.0/16` | /16 | Existing central network | Existing | Customer | Assumption. |
 | On-premises | `10.0.0.0/12` | /12 | Existing internal network | On-prem | Organization | Assumption. |
 
+*Note: All three active API spoke subnets total 88 IPs (down from 768 IPs under /24 allocations) and fit compactly inside `10.80.0.0/25`.*
+
 Do not invent unknown production ranges and represent them as factual.
+
 
 ---
 

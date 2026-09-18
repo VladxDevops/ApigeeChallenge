@@ -11,7 +11,7 @@ related = [
     "AI_MANIFEST.toml"
 ]
 updated_by = "Antigravity AI"
-version = "1.2"
+version = "1.3"
 +++
 
 > **Parent**: [`README.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/README.md)
@@ -27,7 +27,20 @@ version = "1.2"
 
 # Changelog
 
+## 2026-09-18 — Subnet Rightsizing & GCP Minimum Requirements Alignment
+
+- Rightsized API spoke subnets from wasteful `/24` (256 IPs each, 768 IPs total) to the bare minimum required by GCP platform constraints and challenge workloads:
+  - `regional_proxy_only`: `/26` (64 IPs, 60 usable) — enforces GCP's hard minimum prefix limit for regional Envoy proxies (GCP rejects masks longer than `/26`).
+  - `psc_nat`: `/29` (8 IPs, 4 usable) — aligns with GCP's platform minimum for PSC published service NAT and easily covers Apigee's southbound endpoint attachments.
+  - `api_private`: `/28` (16 IPs, 12 usable) — lean allocation safely supporting internal load balancing and backend testing without address exhaustion.
+- Consolidated all three active subnets within `10.80.0.0/25` (88 allocated IPs total, an 88.5% reduction), conserving enterprise IPAM address space.
+- Updated Terraform declarations in `platform/GCP/terraform/modules/infrastructure/networking.tf`, root `variables.tf`, and infrastructure module `variables.tf`.
+- Updated documentation in `docs/networking/addressing-plan.md`, `docs/architecture/architecture.md`, and `docs/decisions/architecture-decisions.md`.
+- Reason: User requested removing over-provisioned /24 CIDRs and sizing subnets to the bare minimum required for the challenge and by GCP services.
+- Validation: `terraform fmt -check` and `terraform validate` executed successfully.
+
 ## 2026-09-17 — Progressive Disclosure Applied to All Documents
+
 
 - Applied TOML front matter, breadcrumbs, and AI retrieval hints to all 24 target `.md` files.
 - Empty stub files (`platform/GCP/terraform/modules/infrastructure/README.md`, `platform/GCP/terraform/modules/infrastructure/Agents.md`, `Agents/skills/agents.md`) were populated with minimal content.

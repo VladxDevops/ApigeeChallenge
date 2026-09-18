@@ -115,14 +115,20 @@ This document records the major decisions needed to defend the proposed architec
 **Consequence:** The design must explicitly document route advertisements, return routes, and firewall rules between API VPC, Hub VPC, and on-premises.
 
 
-## Decision 7 - Addressing Strategy
+## Decision 7 - Addressing Strategy & Subnet Rightsizing
 
-**Decision:** Use a new non-overlapping API VPC block in `10.80.0.0/16`, subject to validation against the real network inventory.
+**Decision:** Use a non-overlapping API VPC block in `10.80.0.0/16` and rightsize all child subnets to the bare minimum required by GCP platform constraints and workload demand, fitting active subnets inside `10.80.0.0/25` (88 IPs allocated) rather than allocating wasteful `/24` (256 IPs) blocks.
 
 | Option | Benefit | Risk | Result |
 |---|---|---|---|
-| `10.80.0.0/16` for API VPC | Clear separation from assumed existing ranges | Must verify with actual IPAM | Selected assumption |
+| Rightsized subnets (`/28` private, `/26` proxy-only, `/29` PSC NAT) within `10.80.0.0/25` | Minimizes IP consumption (88 IPs total vs 768), respects GCP platform minimums, leaves remaining `/16` free | Requires precise CIDR planning and boundary alignment | **Selected** |
+| `/24` per subnet (`10.80.0.0/24`, `10.80.1.0/24`, `10.80.2.0/24`) | Easy default mental model | Massive IP over-provisioning (768 IPs allocated for <5 endpoints); wastes IPAM space | Rejected |
 | Reuse Hub ranges | Saves address space | Overlap and blast-radius risk | Rejected |
 | Use provider/runtime CIDRs | Violates non-VPC-peering intent | Invalid | Rejected |
 
-**Consequence:** The final plan must label existing ranges as assumptions until confirmed by the company.
+**Consequence:**
+- Regional Proxy-Only Subnet is set to `10.80.0.64/26` (64 IPs), respecting GCP's strict platform minimum rule (prefix lengths longer than `/26` are rejected by GCP APIs).
+- PSC NAT Subnet is set to `10.80.0.16/29` (8 IPs, 4 usable), which is the exact GCP platform minimum and sufficient for Apigee's southbound endpoint attachments.
+- API Private Subnet is set to `10.80.0.0/28` (16 IPs, 12 usable), safely accommodating ILB forwarding rules and backends without exhaustion.
+- The entire active API spoke fits inside `10.80.0.0/25`, allowing the organization to allocate a single `/24` rather than three. Existing enterprise ranges remain labelled as assumptions.
+
