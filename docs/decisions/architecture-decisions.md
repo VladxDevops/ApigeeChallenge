@@ -132,3 +132,24 @@ This document records the major decisions needed to defend the proposed architec
 - API Private Subnet is set to `10.80.0.0/28` (16 IPs, 12 usable), safely accommodating ILB forwarding rules and backends without exhaustion.
 - The entire active API spoke fits inside `10.80.0.0/25`, allowing the organization to allocate a single `/24` rather than three. Existing enterprise ranges remain labelled as assumptions.
 
+
+## Decision 8 - Multi-Hop Latency Diagnostic & Observability Strategy
+
+**Decision:** Provision a unified Google Cloud Monitoring telemetry dashboard, log-based metrics, and multi-hop alert policies to trace and isolate latency across all 5 architectural segments (`Client -> ALB/WAF -> PSC -> Apigee -> PSC -> Backend -> Hub -> VPN -> On-Prem Java App -> Database`), rather than assuming perimeter load balancers can resolve downstream peak-hour application or database bottlenecks.
+
+| Option | Diagnostic Value | Operational Overhead | Oral Defense Alignment | Result |
+|---|---|---|---|---|
+| **Multi-hop telemetry (ALB + Apigee Target Latency + Cloud Run + VPN + Log Metrics)** | **High**: Isolates gateway overhead vs backend latency vs hybrid network transit vs DB locks | Low (fully managed GCP native services) | **Directly proves where peak-hour latency originates** (on-prem DB vs Cloud) | **Selected** |
+| Single perimeter load balancer metrics only | Low: Cannot distinguish Apigee processing time from database query wait | Minimal | Fails to answer why on-premises core has peak-hour latency | Rejected |
+| Third-party APM agent fleet (Datadog/Dynatrace) | High | Heavy: Requires agent deployment, secret management, extra license cost | Exceeds scope of minimal, reproducible challenge | Rejected |
+| No observability module in Terraform | None | Zero | Leaves oral defense vulnerable to speculative claims | Rejected |
+
+**Consequence:**
+- Ingress ALB exposes frontend round-trip vs backend latency (`loadbalancing.googleapis.com/https/backend_latencies`).
+- Apigee telemetry explicitly splits proxy processing time (`apigee.googleapis.com/proxy/response_time`) from target execution time (`apigee.googleapis.com/target/response_time`).
+- Cloud Run provides p50/p95/p99 request latencies and container memory/CPU saturation signals.
+- Cloud VPN monitors tunnel state, throughput, and packet drops toward on-premises.
+- Log-based metrics track Cloud Armor WAF security blocks and 5xx errors.
+- Triage runbook documentation is embedded directly inside Terraform-managed alert policies for operational readiness.
+
+

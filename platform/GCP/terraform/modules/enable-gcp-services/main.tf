@@ -85,3 +85,11 @@ resource "google_project_service" "monitoring" {
   disable_on_destroy = false
   depends_on         = [google_project_service.resource_manager]
 }
+
+resource "google_project_service" "cloud_trace" {
+  project            = var.compute_project_id
+  service            = "cloudtrace.googleapis.com"
+  disable_on_destroy = false
+  depends_on         = [google_project_service.resource_manager]
+}
+

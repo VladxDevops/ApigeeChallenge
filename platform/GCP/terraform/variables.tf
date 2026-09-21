@@ -54,5 +54,50 @@ variable "psc_nat_subnet_cidr" {
   default     = "10.80.0.16/29"
 }
 
+# Assumed existing network ranges (from addressing plan - security module)
+variable "hub_vpc_cidr" {
+  description = "CIDR range of the existing Hub VPC (assumed: 10.20.0.0/16 per addressing plan)."
+  type        = string
+  default     = "10.20.0.0/16"
+}
 
-###
+variable "onpremises_cidr" {
+  description = "CIDR range of on-premises networks (assumed: 10.0.0.0/12 per addressing plan)."
+  type        = string
+  default     = "10.0.0.0/12"
+}
+
+# Secret Manager variables
+variable "enable_secret_manager" {
+  description = "Enable Secret Manager resources for storing sensitive application configuration."
+  type        = bool
+  default     = true
+}
+
+variable "secret_api_key" {
+  description = "Placeholder API key secret value (replace in actual deployment)."
+  type        = string
+  default     = "PLACEHOLDER_API_KEY_REPLACE_ME"
+  sensitive   = true
+}
+
+variable "secret_db_password" {
+  description = "Placeholder database password secret value (replace in actual deployment)."
+  type        = string
+  default     = "PLACEHOLDER_DB_PASSWORD_REPLACE_ME"
+  sensitive   = true
+}
+
+variable "secret_oauth_client_secret" {
+  description = "Placeholder OAuth client secret value (replace in actual deployment)."
+  type        = string
+  default     = "PLACEHOLDER_OAUTH_SECRET_REPLACE_ME"
+  sensitive   = true
+}
+
+variable "secret_jwt_signing_key" {
+  description = "Placeholder JWT signing key secret value (replace in actual deployment)."
+  type        = string
+  default     = "PLACEHOLDER_JWT_KEY_REPLACE_ME"
+  sensitive   = true
+}

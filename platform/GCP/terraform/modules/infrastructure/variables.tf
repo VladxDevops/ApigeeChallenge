@@ -49,3 +49,71 @@ variable "psc_nat_subnet_cidr" {
   description = "Private Service Connect NAT subnet for published services (GCP minimum /29, 8 IPs total, 4 usable NAT IPs)."
   type        = string
 }
+
+# Cloud Run backend variables
+variable "cloud_run_service_name" {
+  description = "Name of the Cloud Run backend service."
+  type        = string
+  default     = "rocketcode-demo-backend"
+}
+
+variable "cloud_run_image" {
+  description = "Container image for the Cloud Run backend service."
+  type        = string
+  default     = "gcr.io/cloudrun/hello"
+}
+
+variable "cloud_run_container_port" {
+  description = "Container port exposed by the backend application."
+  type        = number
+  default     = 8080
+}
+
+variable "cloud_run_service_account_email" {
+  description = "Service account email used by the Cloud Run runtime. Leave empty to use the default compute service account."
+  type        = string
+  default     = ""
+}
+
+variable "cloud_run_min_instances" {
+  description = "Minimum number of Cloud Run instances for the service."
+  type        = number
+  default     = 0
+}
+
+variable "cloud_run_max_instances" {
+  description = "Maximum number of Cloud Run instances for the service."
+  type        = number
+  default     = 2
+}
+
+variable "cloud_run_cpu_limit" {
+  description = "CPU limit for the Cloud Run container."
+  type        = string
+  default     = "1000m"
+}
+
+variable "cloud_run_memory_limit" {
+  description = "Memory limit for the Cloud Run container."
+  type        = string
+  default     = "512Mi"
+}
+
+# Artifact Registry variables
+variable "artifact_registry_repository_id" {
+  description = "Artifact Registry repository ID / name for container images."
+  type        = string
+  default     = "rocketcode-demo-repo"
+}
+
+variable "artifact_registry_format" {
+  description = "Repository format: DOCKER or other OCI-compatible format."
+  type        = string
+  default     = "DOCKER"
+}
+
+variable "artifact_registry_cleanup_enabled" {
+  description = "Enable automatic cleanup of unused images."
+  type        = bool
+  default     = false
+}

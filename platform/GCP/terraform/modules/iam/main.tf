@@ -120,12 +120,24 @@ resource "google_project_iam_member" "terraform_sa_storage_admin" {
   member  = "serviceAccount:${var.terraform_deployer_service_account}"
 }
 
-#resource "google_project_iam_member" "terraform_sa_logging_writer" {
-#  project = var.compute_project_id
-#  role    = "roles/logging.logWriter"
-#  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-#}
+resource "google_project_iam_member" "terraform_sa_monitoring_admin" {
+  project = var.compute_project_id
+  role    = "roles/monitoring.admin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
 
+resource "google_project_iam_member" "terraform_sa_logging_admin" {
+  project = var.compute_project_id
+  role    = "roles/logging.admin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
 
+#Devops Role: 
+resource "google_project_iam_member" "terraform_sa_devops_role" {
+  project = var.compute_project_id
+  role    = "roles/iam.devOps"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
 ###End of Roles for terraform deployer service account
+
 

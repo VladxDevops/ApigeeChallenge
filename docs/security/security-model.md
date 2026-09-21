@@ -66,6 +66,8 @@ Backends enforce service-level authorization:
 
 ## 4. TLS and Encryption
 
+> Dev-stage note: This project is a development/demo environment rather than a production deployment. Cloud Armor must be configured in the `STANDARD` tier, and the policy/rule footprint should be the minimum necessary to deploy the project and support an oral presentation or live demo. The goal is a working, reproducible, explainable environment, not a broad production-grade WAF configuration.
+
 | Segment | Encryption |
 |---|---|
 | Client to external LB | HTTPS, TLS 1.2+ with Google-managed or customer-managed certificate. |
