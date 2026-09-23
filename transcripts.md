@@ -195,3 +195,88 @@ The user reported a set of Terraform validation errors in `platform/GCP/terrafor
 ### Validation Performed
 1. `terraform fmt && terraform validate` completed successfully.
 2. Re-ran the exact plan
+---
+
+## Session: Cloud Run, Artifact Registry, and Secret Manager Implementation (2026-09-21)
+
+**Agent**: GitHub Copilot  
+**Objective**: Generate Terraform modules for Cloud Run backend, container registry, and secret storage; update dev environment configuration
+
+### Summary
+Successfully generated minimal Cloud Run service (internal-only ingress), Artifact Registry for container images, and Secret Manager for application credentials. All modules include variables, placeholders, and are integrated into the infrastructure stack. Deployed infrastructure, security, and secrets modules to GCP without errors.
+
+### Key Findings
+1. **Cloud Run**: Implemented as `google_cloud_run_v2_service` with `INGRESS_TRAFFIC_INTERNAL_ONLY` to enforce private backend pattern
+2. **Secrets**: Created 4 secrets (API key, DB password, OAuth client, JWT signing key) with region-specific replication and IAM bindings to Cloud Run SA
+3. **Artifact Registry**: DOCKER format repository in compute region with automatic cleanup disabled for dev
+4. **Dependency Ordering**: Observability module requires load-balancer to be deployed first (encountered 403/reference error during observability plan attempt)
+
+### Decisions Influenced
+- Confirmed Cloud Run must not be publicly exposed (private ingress enforced)
+- Secrets must use versioning and IAM-based access control (not embedded in environment)
+- Artifact Registry should remain minimal for demo (no fancy cleanup policies)
+
+### Files Created/Modified
+- ✓ Created: `platform/GCP/terraform/modules/infrastructure/cloudrun.tf`
+- ✓ Created: `platform/GCP/terraform/modules/infrastructure/artifact-registry.tf`
+- ✓ Created: `platform/GCP/terraform/modules/security/secrets.tf`
+- ✓ Updated: `platform/GCP/terraform/modules/infrastructure/variables.tf` (added Cloud Run and Artifact Registry vars)
+- ✓ Updated: `platform/GCP/terraform/modules/security/variables.tf` (added Secret Manager vars)
+- ✓ Updated: `platform/GCP/terraform/variables.tf` (root-level secret variables)
+- ✓ Updated: `platform/GCP/terraform/infrastructure.tf` (module bindings)
+- ✓ Updated: `platform/GCP/terraform/environments/DEV/dev.tfvars` (all variable placeholders)
+
+### Validation Performed
+1. `terraform fmt && terraform validate` — Success
+2. `terraform apply -target=module.infrastructure` — Success (Exit 0)
+3. `terraform apply -target=module.security` — Success (Exit 0) including secrets
+
+### Outstanding Questions / Next Steps
+1. **Deployment Sequence Decision**: Observability module has dependency on load-balancer. Adjust order: `enable-gcp-services` → `load-balancer` → `observability`
+2. **PSC/Hybrid Connectivity**: Should be declared and deployed before Apigee (enables backend routing)
+3. **Apigee Module**: Requires PSC attachment resources to already exist
+4. **Load Balancer Module**: Must be reviewed for Cloud Armor policy and backend configuration before deployment
+5. **Secret Placeholders**: Need to be replaced with actual secure values before production deployment
+
+---
+
+## Deployment Sequence Plan (Updated 2026-09-21)
+
+**Status**: Paused for documentation; resuming tomorrow
+
+**Completed**:
+1. ✅ `enable-gcp-services` — All prerequisite GCP APIs enabled
+2. ✅ `infrastructure` — VPC, subnets, Cloud Run, Artifact Registry
+3. ✅ `security` — Cloud Armor, firewall, IAM, Secret Manager
+
+**To Deploy (tomorrow)**:
+1. ⏳ `psc` — Private Service Connect infrastructure (enables internal backend routing)
+2. ⏳ `hybrid-connectivity` — Cloud VPN / on-premises connectivity
+3. ⏳ `apigee` — API management runtime configuration (depends on PSC attachment)
+4. ⏳ `load-balancer` — External entry point, regional LB, Cloud Armor policy binding
+5. ⏳ `observability` — Logging, monitoring, alerting (depends on load-balancer)
+
+**Rationale**: PSC and hybrid-connectivity establish the network foundation that Apigee will depend on. Load-balancer must be in place before observability can be deployed (observability module references load-balancer outputs). This sequence ensures all hard dependencies are satisfied.
+
+**Commands to Execute Tomorrow**:
+```bash
+# PSC foundation
+terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.psc -out=psc.tfplan
+terraform apply psc.tfplan
+
+# Hybrid connectivity
+terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.hybrid-connectivity -out=hybrid.tfplan
+terraform apply hybrid.tfplan
+
+# Apigee (depends on PSC)
+terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.apigee -out=apigee.tfplan
+terraform apply apigee.tfplan
+
+# Load balancer
+terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.load-balancer -out=lb.tfplan
+terraform apply lb.tfplan
+
+# Observability (depends on load-balancer)
+terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.observability -out=observability.tfplan
+terraform apply observability.tfplan
+```

@@ -10,6 +10,8 @@ module "infrastructure" {
   api_private_subnet_cidr            = var.api_private_subnet_cidr
   proxy_only_subnet_cidr             = var.proxy_only_subnet_cidr
   psc_nat_subnet_cidr                = var.psc_nat_subnet_cidr
+  api_backend_port = var.api_backend_port
+  apigee_consumer_project_id = var.apigee_consumer_project_id
 }
 
 ################################################################################

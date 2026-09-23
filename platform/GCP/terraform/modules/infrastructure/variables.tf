@@ -117,3 +117,15 @@ variable "artifact_registry_cleanup_enabled" {
   type        = bool
   default     = false
 }
+
+### Variables from Private Service Connect (PSC) module:
+
+variable "api_backend_port" {
+  type        = number
+  description = "Port the backend service listens on behind the ILB."
+}
+
+variable "apigee_consumer_project_id" {
+  type        = string
+  description = "Project ID or number of the Apigee (or other) consumer allowed to connect via PSC."
+}

@@ -101,3 +101,16 @@ variable "secret_jwt_signing_key" {
   default     = "PLACEHOLDER_JWT_KEY_REPLACE_ME"
   sensitive   = true
 }
+
+
+### Variables from Private Service Connect (PSC) module: 
+
+variable "api_backend_port" {
+  type        = number
+  description = "Port the backend service listens on behind the ILB."
+}
+
+variable "apigee_consumer_project_id" {
+  type        = string
+  description = "Project ID or number of the Apigee (or other) consumer allowed to connect via PSC."
+}

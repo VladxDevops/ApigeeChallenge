@@ -98,6 +98,7 @@ grep -A3 "hub_vpc_cidr\|onpremises_cidr" variables.tf
 terraform state list | grep infrastructure
 ```
 
+
 ### Deployment
 
 ```bash
@@ -110,6 +111,7 @@ terraform show tfplan | grep -A5 "google_compute_security_policy\|google_compute
 # 3. Apply
 terraform apply tfplan
 ```
+
 
 ### Post-Deployment Validation
 
@@ -124,6 +126,7 @@ gcloud compute security-policies rules list \
 
 # Expected output: a small set of demo rules, not a large production rule set.
 ```
+
 
 #### Check 2: Firewall Rules
 ```bash
@@ -140,6 +143,7 @@ gcloud compute firewall-rules list \
   --project=$PROJECT | wc -l
 # Should show the reduced rule count for the demo deployment.
 ```
+
 
 #### Check 3: IAM Service Accounts
 ```bash
@@ -162,6 +166,7 @@ gcloud projects get-iam-policy $PROJECT \
 # - roles/run.invoker
 ```
 
+
 #### Check 4: Firewall Logging
 ```bash
 # View recent firewall logs
@@ -174,6 +179,7 @@ gcloud logging read "resource.type=http_load_balancer" \
   --limit=5 --project=$PROJECT --format=json | \
   jq '.[] | {severity: .severity, message: .jsonPayload.enforcedSecurityPolicy}'
 ```
+
 
 ## Common Operations
 
@@ -188,6 +194,7 @@ terraform apply
 # Rules will log instead of block (safe for testing WAF rules)
 ```
 
+
 ### Adjust Rate Limiting Threshold
 ```bash
 # Edit in infrastructure.tf:
@@ -199,6 +206,7 @@ cloud_armor_rate_limit_options = {
 
 terraform apply
 ```
+
 
 ### Attach Cloud Armor Policy to Load Balancer
 ```hcl
@@ -216,6 +224,7 @@ resource "google_compute_region_backend_service" "api_backend" {
 }
 ```
 
+
 ### Enable VPC Service Controls (Production)
 ```hcl
 # In infrastructure.tf:
@@ -231,6 +240,7 @@ module "security" {
 
 terraform apply
 ```
+
 
 ## Troubleshooting
 
@@ -264,6 +274,7 @@ gcloud compute backend-services describe api-backend-service \
 # securityPolicy: https://www.googleapis.com/compute/v1/projects/.../global/securityPolicies/api-spoke-waf-policy
 ```
 
+
 ### Problem: "Traffic is being blocked by firewall when it shouldn't be"
 
 **Diagnosis**:
@@ -283,6 +294,7 @@ gcloud logging read "resource.type=vpc_flow AND jsonPayload.disposition=DENY" \
 # Follow the same pattern as existing rules (deny-all default → explicit allow)
 # Update infrastructure.tf with new rule, then terraform apply
 ```
+
 
 ### Problem: "Service account cannot access secrets/logs"
 
@@ -305,6 +317,7 @@ terraform apply -target=module.security
 # If roles are present but still denied, check Secret Manager IAM policy
 gcloud secrets get-iam-policy SECRET_NAME --project=$PROJECT
 ```
+
 
 ## Integration Points
 
@@ -331,6 +344,7 @@ admin_service_account_email = module.security.apigee_admin_service_account_email
 # Log aggregation happens in Cloud Logging sink (configure separately)
 ```
 
+
 ## Maintenance Schedule
 
 ### Daily
@@ -354,6 +368,7 @@ admin_service_account_email = module.security.apigee_admin_service_account_email
 - Evaluate new GCP security services (e.g., Security Service Edge, Cloud IDS)
 - Update documentation with lessons learned
 
+
 ## Cost Optimization
 
 | Component | Cost | Optimization |
@@ -363,6 +378,7 @@ admin_service_account_email = module.security.apigee_admin_service_account_email
 | Firewall logging | $2/GB egress | Export to GCS for long-term retention (cheaper than Cloud Logging) |
 | VPC Flow Logs | $2/GB | Only enable for critical subnets; disable for internal routing |
 | Service accounts | Free | Use workload identity (free) instead of service account keys |
+
 
 ## Reference Documentation
 
