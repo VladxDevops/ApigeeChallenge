@@ -105,12 +105,32 @@ variable "secret_jwt_signing_key" {
 
 ### Variables from Private Service Connect (PSC) module: 
 
-variable "api_backend_port" {
-  type        = number
-  description = "Port the backend service listens on behind the ILB."
+# Deprecated variable "api_backend_port": 
+#variable "api_backend_port" {
+#  type        = number
+#  description = "Port the backend service listens on behind the ILB."
+#}
+
+variable "cloud_run_service_name" {
+  type        = string
+  description = "Name of the Cloud Run service acting as the backend."
 }
 
 variable "apigee_consumer_project_id" {
   type        = string
   description = "Project ID or number of the Apigee (or other) consumer allowed to connect via PSC."
+}
+
+variable "apigee_northbound_service_attachment" {
+  type        = string
+  description = "Service attachment URI Apigee provides for northbound PSC connectivity."
+}
+
+variable "tls_private_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "tls_certificate" {
+  type = string
 }

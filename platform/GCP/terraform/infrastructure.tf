@@ -10,8 +10,12 @@ module "infrastructure" {
   api_private_subnet_cidr            = var.api_private_subnet_cidr
   proxy_only_subnet_cidr             = var.proxy_only_subnet_cidr
   psc_nat_subnet_cidr                = var.psc_nat_subnet_cidr
-  api_backend_port = var.api_backend_port
+  #api_backend_port = var.api_backend_port
   apigee_consumer_project_id = var.apigee_consumer_project_id
+  cloud_run_service_name = var.cloud_run_service_name
+  apigee_northbound_service_attachment = var.apigee_northbound_service_attachment
+  tls_private_key = var.tls_private_key
+  tls_certificate = var.tls_certificate
 }
 
 ################################################################################
