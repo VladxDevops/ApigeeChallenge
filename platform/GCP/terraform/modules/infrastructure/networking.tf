@@ -60,6 +60,9 @@ resource "google_compute_region_network_endpoint_group" "cloud_run_neg" {
   cloud_run {
     service = var.cloud_run_service_name
   }
+
+  # Ensures the Cloud Run service exists before the NEG binds to it
+  depends_on = [google_cloud_run_v2_service.api_backend]
 }
 
 # Regional backend service, INTERNAL_MANAGED scheme (proxy-based), pointing at the serverless NEG.
@@ -110,6 +113,19 @@ resource "google_compute_forwarding_rule" "api_ilb" {
   depends_on = [google_compute_subnetwork.regional_proxy_only]
 }
 
+# Allow internal load balancer / serverless NEG to invoke the Cloud Run service.
+# Cloud Run is isolated via INGRESS_TRAFFIC_INTERNAL_ONLY, so allUsers only allows traffic
+# originating from within internal GCP network paths (such as the internal load balancer).
+resource "google_cloud_run_v2_service_iam_member" "cloud_run_invoker" {
+  project  = var.compute_project_id
+  location = var.compute_region
+  name     = var.cloud_run_service_name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+
+  depends_on = [google_cloud_run_v2_service.api_backend]
+}
+
 # Service Attachment - unchanged in shape, still targets the forwarding rule above.
 resource "google_compute_service_attachment" "api_psc" {
   name                  = "api-psc-service-attachment"
@@ -145,36 +161,50 @@ resource "google_compute_region_network_endpoint_group" "apigee_psc_neg" {
   network               = google_compute_network.api_spoke.id
   subnetwork            = google_compute_subnetwork.api_private.id
   psc_target_service    = var.apigee_northbound_service_attachment
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Cloud Armor policy attached to the backend service.
-resource "google_compute_security_policy" "api_armor_policy" {
+# Regional backend services require a regional security policy (google_compute_region_security_policy).
+resource "google_compute_region_security_policy" "api_armor_policy" {
   name        = "api-armor-policy"
   project     = var.compute_project_id
+  region      = var.compute_region
   description = "Baseline Cloud Armor policy for the northbound API entry point."
+}
 
-  rule {
-    action   = "deny(403)"
-    priority = 1000
-    match {
-      versioned_expr = "SRC_IPS_V1"
-      config {
-        src_ip_ranges = ["9.9.9.9/32"] # placeholder deny rule - replace/remove as needed
-      }
+resource "google_compute_region_security_policy_rule" "deny_test_ip" {
+  region          = var.compute_region
+  project         = var.compute_project_id
+  security_policy = google_compute_region_security_policy.api_armor_policy.name
+  priority        = 1000
+  action          = "deny(403)"
+  description     = "Example explicit deny rule."
+
+  match {
+    versioned_expr = "SRC_IPS_V1"
+    config {
+      src_ip_ranges = ["9.9.9.9/32"] # placeholder deny rule - replace/remove as needed
     }
-    description = "Example explicit deny rule."
   }
+}
 
-  rule {
-    action      = "allow"
-    priority    = 2147483647
-    match {
-      versioned_expr = "SRC_IPS_V1"
-      config {
-        src_ip_ranges = ["*"]
-      }
+resource "google_compute_region_security_policy_rule" "default_allow" {
+  region          = var.compute_region
+  project         = var.compute_project_id
+  security_policy = google_compute_region_security_policy.api_armor_policy.name
+  priority        = 2147483647
+  action          = "allow"
+  description     = "Default allow rule."
+
+  match {
+    versioned_expr = "SRC_IPS_V1"
+    config {
+      src_ip_ranges = ["*"]
     }
-    description = "Default allow rule."
   }
 }
 
@@ -185,10 +215,10 @@ resource "google_compute_region_backend_service" "apigee_northbound" {
   region                = var.compute_region
   protocol              = "HTTPS"
   load_balancing_scheme = "EXTERNAL_MANAGED"
-  #security_policy       = google_compute_security_policy.api_armor_policy.id #This line triggered error. 
+  security_policy       = google_compute_region_security_policy.api_armor_policy.self_link
 
   backend {
-    group = google_compute_region_network_endpoint_group.apigee_psc_neg.id
+    group           = google_compute_region_network_endpoint_group.apigee_psc_neg.id
     capacity_scaler = 1.0
   }
 }
@@ -233,7 +263,6 @@ resource "google_compute_forwarding_rule" "apigee_northbound" {
   port_range            = "443"
   load_balancing_scheme = "EXTERNAL_MANAGED"
   target                = google_compute_region_target_https_proxy.apigee_northbound.id
-  network               = google_compute_network.api_spoke.id
   network_tier          = "STANDARD"
 
   depends_on = [google_compute_subnetwork.regional_proxy_only]

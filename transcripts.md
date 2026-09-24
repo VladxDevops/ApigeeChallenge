@@ -29,6 +29,28 @@ version = "1.2"
 
 This file is a concise index of significant AI-agent work. Full or sensitive working notes belong under `docs/internal/` and are not committed.
 
+## Session: Fix Regional ALB, Cloud Armor, and IAM in Networking Module
+**Date**: 2026-09-23  
+**Agent**: Antigravity (Gemini 3.8 Flash High)  
+**Objective**: Review and fix errors in `modules/infrastructure/networking.tf` and update IAM roles for the Terraform service account.
+
+### Summary
+Diagnosed and resolved critical GCP platform and provider schema errors in the infrastructure networking module. Converted the global Cloud Armor policy to a regional security policy, removed invalid arguments on external forwarding rules, established explicit dependencies between the Serverless NEG and Cloud Run service, added Cloud Run invoker permissions, and added `roles/compute.securityAdmin` and `roles/compute.loadBalancerAdmin` to the deployer service account in `modules/iam/main.tf`.
+
+### Key Findings
+1. **Cloud Armor Regional Scope**: Regional backend services (`EXTERNAL_MANAGED`) require `google_compute_region_security_policy` and `google_compute_region_security_policy_rule`, not global `google_compute_security_policy`.
+2. **Forwarding Rule Arguments**: `network` is rejected by GCP API for `EXTERNAL_MANAGED` forwarding rules.
+3. **IAM Role Correction**: Deployer SA previously had `roles/iam.securityAdmin` (IAM admin) but lacked `roles/compute.securityAdmin` (Compute/WAF security admin).
+4. **Cloud Run Invocation**: Added `roles/run.invoker` resource to allow internal load balancer to call Cloud Run.
+
+### Files Changed
+- ✓ Updated: `platform/GCP/terraform/modules/infrastructure/networking.tf`
+- ✓ Updated: `platform/GCP/terraform/modules/iam/main.tf`
+- ✓ Updated: `changelog.md`
+- ✓ Updated: `transcripts.md`
+
+---
+
 ## Session: Build Security Layer in Terraform
 **Date**: 2026-09-18  
 **Agent**: GitHub Copilot  

@@ -27,6 +27,30 @@ version = "1.3"
 
 # Changelog
 
+## 2026-09-23 — Networking and IAM Module Fixes for Regional ALB and Cloud Armor
+**Status**: Completed and integrated
+
+**What Changed**:
+- Corrected Cloud Armor policy scope in `platform/GCP/terraform/modules/infrastructure/networking.tf`:
+  - Replaced global `google_compute_security_policy` with `google_compute_region_security_policy` and dedicated `google_compute_region_security_policy_rule` resources.
+  - Attached regional policy to `google_compute_region_backend_service.apigee_northbound` via `security_policy`.
+- Fixed argument validation error in `google_compute_forwarding_rule.apigee_northbound`:
+  - Removed unsupported `network` parameter for `EXTERNAL_MANAGED` forwarding rule.
+- Added explicit dependency on Cloud Run backend service in `google_compute_region_network_endpoint_group.cloud_run_neg`.
+- Added `roles/run.invoker` IAM binding on Cloud Run service (`google_cloud_run_v2_service_iam_member`) to permit ingress from the internal load balancer.
+- Added `lifecycle { create_before_destroy = true }` to `apigee_psc_neg` to avoid recreation conflicts.
+- Updated `platform/GCP/terraform/modules/iam/main.tf`:
+  - Added missing `roles/compute.securityAdmin` to allow Terraform deployer SA to manage Cloud Armor security policies and SSL certificates.
+  - Added `roles/compute.loadBalancerAdmin` for least-privilege load balancer and service attachment operations.
+
+**Why**:
+- Regional backend services in GCP cannot attach global Cloud Armor policies.
+- External forwarding rules reject the `network` attribute in GCP.
+- Race conditions when provisioning Serverless NEGs before Cloud Run is ready.
+- Missing compute security and load balancer IAM roles on the deployer service account.
+
+---
+
 ## 2026-09-18 — Security Layer Terraform Module Implementation (GitHub Copilot)
 **Status**: Complete and integrated into infrastructure stack
 

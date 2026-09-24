@@ -96,6 +96,18 @@ resource "google_project_iam_member" "terraform_sa_iam_security_admin" {
   member  = "serviceAccount:${var.terraform_deployer_service_account}"
 }
 
+resource "google_project_iam_member" "terraform_sa_compute_security_admin" {
+  project = var.compute_project_id
+  role    = "roles/compute.securityAdmin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
+
+resource "google_project_iam_member" "terraform_sa_compute_load_balancer_admin" {
+  project = var.compute_project_id
+  role    = "roles/compute.loadBalancerAdmin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
+
 resource "google_project_iam_member" "terraform_sa_serverless_vpc_access_admin" {
   project = var.compute_project_id
   role    = "roles/vpcaccess.admin"

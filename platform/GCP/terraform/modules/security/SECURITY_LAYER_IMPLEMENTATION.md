@@ -13,6 +13,7 @@ A comprehensive, zero-trust security layer has been successfully implemented for
 3. **Identity & Access** with least-privilege IAM for Cloud Run and Apigee
 4. **Optional VPC Service Controls** for zero-trust API access governance
 
+
 ## Module Composition
 
 ```
@@ -25,6 +26,7 @@ platform/GCP/terraform/modules/security/
 
 TOTAL: 1,702 lines (977 lines code + 725 lines docs)
 ```
+
 
 ## Key Components
 
@@ -51,6 +53,7 @@ TOTAL: 1,702 lines (977 lines code + 725 lines docs)
 security_policy = module.security.cloud_armor_policy_self_link
 ```
 
+
 ### 2. Firewall Rules (10 rules total: 2 defaults + 8 allows)
 
 **Architecture: Zero-Trust Deny-All Default**
@@ -69,7 +72,9 @@ Priority 1000-1004: Explicit ALLOW rules
     • Rule 6: GCP metadata service (workload identity)
 ```
 
+
 **Logging**: All rules include comprehensive logging for audit and forensics.
+
 
 ### 3. IAM Service Accounts (2 accounts, 4 role bindings)
 
@@ -78,6 +83,7 @@ Priority 1000-1004: Explicit ALLOW rules
 - `roles/logging.logWriter` — Write application logs
 - `roles/monitoring.metricWriter` — Emit metrics
 - `roles/run.invoker` — Allow LB invocation
+
 
 #### Apigee Admin Service Account
 - `roles/apigee.admin` — Manage Apigee org/proxies
@@ -90,6 +96,7 @@ service_account_email = module.security.cloud_run_service_account_email
 # In Apigee module:
 admin_service_account_email = module.security.apigee_admin_service_account_email
 ```
+
 
 ### 4. VPC Service Controls (Optional)
 
@@ -106,6 +113,7 @@ vpc_sc_restricted_services = [
 ]
 ```
 
+
 ## Integration Points
 
 ### Phase 1: Current (Completed)
@@ -115,6 +123,7 @@ vpc_sc_restricted_services = [
 - ✓ IAM service accounts created with minimal required roles
 - ✓ VPC Service Controls perimeter configured (optional, disabled by default)
 
+
 ### Phase 2: Load Balancer Module (Next)
 ```hcl
 resource "google_compute_region_backend_service" "api_backend" {
@@ -122,6 +131,7 @@ resource "google_compute_region_backend_service" "api_backend" {
   # ... other config
 }
 ```
+
 
 ### Phase 3: Cloud Run Module (Next)
 ```hcl
@@ -131,6 +141,7 @@ resource "google_cloud_run_service" "api_backend" {
 }
 ```
 
+
 ### Phase 4: Apigee Module (Next)
 ```hcl
 resource "google_apigee_organization" "api_org" {
@@ -138,6 +149,7 @@ resource "google_apigee_organization" "api_org" {
   # module.security.apigee_admin_service_account_email
 }
 ```
+
 
 ## Deployment Instructions
 
@@ -147,15 +159,18 @@ cd platform/GCP/terraform
 terraform plan -var-file=environments/DEV/dev.tfvars -out=tfplan
 ```
 
+
 ### 2. Review
 ```bash
 terraform show tfplan | grep -A10 "google_compute_security_policy\|google_compute_firewall"
 ```
 
+
 ### 3. Apply
 ```bash
 terraform apply tfplan
 ```
+
 
 ### 4. Validate (see QUICK_REFERENCE.md for detailed checks)
 ```bash
@@ -169,7 +184,9 @@ gcloud compute firewall-rules list --filter="network:api-spoke-vpc"
 gcloud iam service-accounts list --filter="email:cloud-run-backend-sa@"
 ```
 
+
 ## Architecture Alignment
+
 
 ### Challenge Constraints
 
@@ -180,6 +197,7 @@ gcloud iam service-accounts list --filter="email:cloud-run-backend-sa@"
 | Must enforce private connectivity | 8 firewall rules map documented traffic flows; PSC requires private service attachment | ✓ Enforced |
 | Must be reproducible (IaC) | 100% Terraform implementation; no manual console changes required | ✓ Reproducible |
 
+
 ### Architecture Decisions
 
 | Decision | Implementation | Status |
@@ -188,6 +206,7 @@ gcloud iam service-accounts list --filter="email:cloud-run-backend-sa@"
 | Decision 4: PSC Southbound | Firewall rule 2b enables Apigee → customer service attachment | ✓ Implemented |
 | Decision 5: Cloud Run Runtime | Service account with minimal roles for workload identity | ✓ Implemented |
 | Decision 8: Latency Observability | Firewall logging + service account metrics roles enabled | ✓ Implemented |
+
 
 ## Validation Results
 
@@ -199,16 +218,17 @@ gcloud iam service-accounts list --filter="email:cloud-run-backend-sa@"
 | Traffic Flows | ✓ Mapped | 8 allow rules align with architecture diagram |
 | Security Best Practices | ✓ Compliant | Deny-all default, explicit allow-list, least-privilege IAM, logging |
 
+
 ## Documentation Provided
 
-1. **README.md** (337 lines)
+1. **README.md**
    - Complete module overview
    - Cloud Armor, firewall, IAM, VPC Service Controls details
    - Deployment instructions
    - Troubleshooting guide
    - Maintenance schedule
 
-2. **QUICK_REFERENCE.md** (388 lines)
+2. **QUICK_REFERENCE.md**
    - Quick facts and architecture overview
    - Deployment checklist
    - Common operations
@@ -222,6 +242,7 @@ gcloud iam service-accounts list --filter="email:cloud-run-backend-sa@"
 4. **Changelog & Transcripts**
    - `changelog.md` — Formal record of changes
    - `transcripts.md` — Session objectives, findings, decisions
+
 
 ## Files Created/Modified
 
@@ -241,16 +262,18 @@ MODIFIED:
 ✓ transcripts.md (added session entry)
 ```
 
+
 ## Security Best Practices Implemented
 
 ✓ **Deny-All Default**: Zero-trust network with explicit allow rules only
 ✓ **OWASP Top 10 Coverage**: 7 Cloud Armor rules cover major attack vectors
-✓ **Least-Privilege IAM**: Separate SAs with only required roles
+✓ **Least-Privilege IAM**: Separate Service Accounts with only required roles
 ✓ **Encryption in Transit**: TLS (external), private Google network (PSC), IPSec (VPN)
 ✓ **Comprehensive Logging**: All firewall decisions, Cloud Armor blocks, IAM changes logged
 ✓ **Explicit Trust Boundaries**: PSC separates Apigee from customer VPC
 ✓ **Workload Identity**: Cloud Run uses service account, not keys
 ✓ **Optional Zero-Trust**: VPC Service Controls for restricted API access
+
 
 ## Known Limitations & Future Work
 
@@ -262,6 +285,7 @@ MODIFIED:
 3. **Cloud Armor Rate Limiting**: Simple IP-based bucketing
    - Recommendation: Consider geolocation rules or bot detection for production
 
+
 ### Future Enhancements
 
 1. Add custom Cloud Armor rules for API-specific protection
@@ -269,6 +293,7 @@ MODIFIED:
 3. Add network segmentation via GKE/Compute Engine tagging
 4. Implement SIEM integration for centralized log analysis
 5. Add alert policies for security events (Cloud Armor blocks, firewall denies)
+
 
 ## Next Steps
 
@@ -301,12 +326,14 @@ MODIFIED:
    - Simulate XSS/SQLi attacks
    - Verify requests are denied and logged
 
+
 ### Long Term
 
 1. Enable VPC Service Controls in production environments
 2. Narrow firewall egress rules to specific backend ports
 3. Add custom Cloud Armor rules for API-specific protection
 4. Integrate observability alerts for security events
+
 
 ## Support & Troubleshooting
 
