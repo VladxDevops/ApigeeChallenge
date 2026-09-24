@@ -11,11 +11,11 @@ module "infrastructure" {
   proxy_only_subnet_cidr             = var.proxy_only_subnet_cidr
   psc_nat_subnet_cidr                = var.psc_nat_subnet_cidr
   #api_backend_port = var.api_backend_port
-  apigee_consumer_project_id = var.apigee_consumer_project_id
-  cloud_run_service_name = var.cloud_run_service_name
+  apigee_consumer_project_id           = var.apigee_consumer_project_id
+  cloud_run_service_name               = var.cloud_run_service_name
   apigee_northbound_service_attachment = var.apigee_northbound_service_attachment
-  tls_private_key = var.tls_private_key
-  tls_certificate = var.tls_certificate
+  tls_private_key                      = var.tls_private_key
+  tls_certificate                      = var.tls_certificate
 }
 
 ################################################################################
@@ -93,11 +93,11 @@ module "security" {
   }
 
   # Secret Manager configuration
-  enable_secret_manager       = var.enable_secret_manager
-  secret_api_key              = var.secret_api_key
-  secret_db_password          = var.secret_db_password
-  secret_oauth_client_secret  = var.secret_oauth_client_secret
-  secret_jwt_signing_key      = var.secret_jwt_signing_key
+  enable_secret_manager      = var.enable_secret_manager
+  secret_api_key             = var.secret_api_key
+  secret_db_password         = var.secret_db_password
+  secret_oauth_client_secret = var.secret_oauth_client_secret
+  secret_jwt_signing_key     = var.secret_jwt_signing_key
 
   # Module dependency
   depends_on = [module.infrastructure]

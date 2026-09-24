@@ -151,9 +151,46 @@ resource "google_compute_service_attachment" "api_psc" {
 # EXTERNAL_MANAGED regional ALBs also require regional_proxy_only - the same proxy-only
 # subnet already declared serves both this northbound LB and the southbound internal LB.
 
+locals {
+  # Auto-generate self-signed TLS cert if user provided placeholder or empty values
+  use_custom_tls = var.tls_certificate != "" && !can(regex("PLACEHOLDER", var.tls_certificate)) && var.tls_private_key != "" && !can(regex("PLACEHOLDER", var.tls_private_key))
+
+  effective_tls_private_key = local.use_custom_tls ? var.tls_private_key : (length(tls_private_key.default_self_signed) > 0 ? tls_private_key.default_self_signed[0].private_key_pem : "")
+  effective_tls_certificate = local.use_custom_tls ? var.tls_certificate : (length(tls_self_signed_cert.default_self_signed) > 0 ? tls_self_signed_cert.default_self_signed[0].cert_pem : "")
+
+  # Only provision Northbound PSC NEG & ALB if a valid non-placeholder Apigee Service Attachment URI is specified
+  has_valid_apigee_attachment = var.apigee_northbound_service_attachment != "" && !can(regex("PLACEHOLDER|placeholder|api-psc-service-attachment", var.apigee_northbound_service_attachment))
+}
+
+# Auto-generated self-signed certificate fallback for dev / testing environments
+resource "tls_private_key" "default_self_signed" {
+  count     = local.has_valid_apigee_attachment && !local.use_custom_tls ? 1 : 0
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+resource "tls_self_signed_cert" "default_self_signed" {
+  count           = local.has_valid_apigee_attachment && !local.use_custom_tls ? 1 : 0
+  private_key_pem = tls_private_key.default_self_signed[0].private_key_pem
+
+  subject {
+    common_name  = "api.example.com"
+    organization = "Rocket Code Demo"
+  }
+
+  validity_period_hours = 8760 # 1 year
+
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
+}
+
 # PSC NEG referencing Apigee's northbound service attachment (Apigee gives you this URI
 # once the org/instance is provisioned in non-VPC-peering mode).
 resource "google_compute_region_network_endpoint_group" "apigee_psc_neg" {
+  count                 = local.has_valid_apigee_attachment ? 1 : 0
   name                  = "apigee-northbound-psc-neg"
   project               = var.compute_project_id
   region                = var.compute_region
@@ -174,42 +211,35 @@ resource "google_compute_region_security_policy" "api_armor_policy" {
   project     = var.compute_project_id
   region      = var.compute_region
   description = "Baseline Cloud Armor policy for the northbound API entry point."
-}
 
-resource "google_compute_region_security_policy_rule" "deny_test_ip" {
-  region          = var.compute_region
-  project         = var.compute_project_id
-  security_policy = google_compute_region_security_policy.api_armor_policy.name
-  priority        = 1000
-  action          = "deny(403)"
-  description     = "Example explicit deny rule."
-
-  match {
-    versioned_expr = "SRC_IPS_V1"
-    config {
-      src_ip_ranges = ["9.9.9.9/32"] # placeholder deny rule - replace/remove as needed
+  rules {
+    action      = "deny(403)"
+    priority    = 1000
+    description = "Example explicit deny rule."
+    match {
+      versioned_expr = "SRC_IPS_V1"
+      config {
+        src_ip_ranges = ["9.9.9.9/32"] # placeholder deny rule - replace/remove as needed
+      }
     }
   }
-}
 
-resource "google_compute_region_security_policy_rule" "default_allow" {
-  region          = var.compute_region
-  project         = var.compute_project_id
-  security_policy = google_compute_region_security_policy.api_armor_policy.name
-  priority        = 2147483647
-  action          = "allow"
-  description     = "Default allow rule."
-
-  match {
-    versioned_expr = "SRC_IPS_V1"
-    config {
-      src_ip_ranges = ["*"]
+  rules {
+    action      = "allow"
+    priority    = 2147483647
+    description = "Default allow rule."
+    match {
+      versioned_expr = "SRC_IPS_V1"
+      config {
+        src_ip_ranges = ["*"]
+      }
     }
   }
 }
 
 # Regional backend service fronting the PSC NEG, with Cloud Armor attached.
 resource "google_compute_region_backend_service" "apigee_northbound" {
+  count                 = local.has_valid_apigee_attachment ? 1 : 0
   name                  = "apigee-northbound-backend"
   project               = var.compute_project_id
   region                = var.compute_region
@@ -218,36 +248,40 @@ resource "google_compute_region_backend_service" "apigee_northbound" {
   security_policy       = google_compute_region_security_policy.api_armor_policy.self_link
 
   backend {
-    group           = google_compute_region_network_endpoint_group.apigee_psc_neg.id
+    group           = google_compute_region_network_endpoint_group.apigee_psc_neg[0].id
     capacity_scaler = 1.0
   }
 }
 
 resource "google_compute_region_url_map" "apigee_northbound" {
+  count           = local.has_valid_apigee_attachment ? 1 : 0
   name            = "apigee-northbound-urlmap"
   project         = var.compute_project_id
   region          = var.compute_region
-  default_service = google_compute_region_backend_service.apigee_northbound.id
+  default_service = google_compute_region_backend_service.apigee_northbound[0].id
 }
 
-# Managed SSL cert - requires the domain to be validated via the DNS record noted in the doc.
+# SSL Cert - uses custom TLS cert if provided, or auto-generated self-signed cert if left empty/placeholder
 resource "google_compute_region_ssl_certificate" "apigee_northbound" {
+  count       = local.has_valid_apigee_attachment ? 1 : 0
   name        = "apigee-northbound-cert"
   project     = var.compute_project_id
   region      = var.compute_region
-  private_key = var.tls_private_key # or switch to google_compute_managed_ssl_certificate if using Google-managed certs
-  certificate = var.tls_certificate
+  private_key = local.effective_tls_private_key
+  certificate = local.effective_tls_certificate
 }
 
 resource "google_compute_region_target_https_proxy" "apigee_northbound" {
+  count            = local.has_valid_apigee_attachment ? 1 : 0
   name             = "apigee-northbound-https-proxy"
   project          = var.compute_project_id
   region           = var.compute_region
-  url_map          = google_compute_region_url_map.apigee_northbound.id
-  ssl_certificates = [google_compute_region_ssl_certificate.apigee_northbound.id]
+  url_map          = google_compute_region_url_map.apigee_northbound[0].id
+  ssl_certificates = [google_compute_region_ssl_certificate.apigee_northbound[0].id]
 }
 
 resource "google_compute_address" "apigee_northbound_ip" {
+  count        = local.has_valid_apigee_attachment ? 1 : 0
   name         = "apigee-northbound-external-ip"
   project      = var.compute_project_id
   region       = var.compute_region
@@ -255,14 +289,15 @@ resource "google_compute_address" "apigee_northbound_ip" {
 }
 
 resource "google_compute_forwarding_rule" "apigee_northbound" {
+  count                 = local.has_valid_apigee_attachment ? 1 : 0
   name                  = "apigee-northbound-fwd-rule"
   project               = var.compute_project_id
   region                = var.compute_region
-  ip_address            = google_compute_address.apigee_northbound_ip.id
+  ip_address            = google_compute_address.apigee_northbound_ip[0].id
   ip_protocol           = "TCP"
   port_range            = "443"
   load_balancing_scheme = "EXTERNAL_MANAGED"
-  target                = google_compute_region_target_https_proxy.apigee_northbound.id
+  target                = google_compute_region_target_https_proxy.apigee_northbound[0].id
   network_tier          = "STANDARD"
 
   depends_on = [google_compute_subnetwork.regional_proxy_only]

@@ -24,8 +24,8 @@ resource "google_cloud_run_v2_service" "api_backend" {
       }
 
       #env {
-       # name  = "PORT"
-        #value = tostring(var.cloud_run_container_port)
+      # name  = "PORT"
+      #value = tostring(var.cloud_run_container_port)
       #}
 
       env {

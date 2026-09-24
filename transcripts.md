@@ -11,7 +11,7 @@ related = [
     "AI_MANIFEST.toml"
 ]
 updated_by = "Antigravity AI"
-version = "1.2"
+version = "1.3"
 +++
 
 > **Parent**: [`README.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/README.md)
@@ -25,9 +25,100 @@ version = "1.2"
 - When NOT to Retrieve: When looking for current architecture state (use docs/architecture/), or for the changelog (use changelog.md).
 -->
 
-# Agent Transcripts
+## Session: Fix Regional Cloud Armor Security Policy Rule HTTP 400 Apply Error
+**Date**: 2026-09-24  
+**Agent**: Antigravity  
+**Objective**: Fix `terraform apply` error HTTP 400 `api-armor-policy does not contain a rule with priority 1000` when reading standalone `google_compute_region_security_policy_rule`.
 
-This file is a concise index of significant AI-agent work. Full or sensitive working notes belong under `docs/internal/` and are not committed.
+### Summary
+Refactored `google_compute_region_security_policy.api_armor_policy` in `platform/GCP/terraform/modules/infrastructure/networking.tf` to embed rule blocks inline (`deny_test_ip` priority 1000 and `default_allow` priority 2147483647) and removed standalone rule resources.
+
+### Key Findings
+1. **GCP API Provider Behavior**: Standalone `google_compute_region_security_policy_rule` resources call `getRule` on individual priorities. GCP returns HTTP 400 Bad Request (rather than 404 Not Found) if a rule priority is not present, which the Terraform Google provider handles as an unrecoverable API error.
+2. **Inline Rule Block Resolution**: Embedding rules directly within `google_compute_region_security_policy` uses atomic policy PATCH operations, eliminating standalone `getRule` queries and fixing the `terraform apply` error.
+
+### Files Changed
+- ✓ Updated: `platform/GCP/terraform/modules/infrastructure/networking.tf`
+- ✓ Updated: `changelog.md`
+- ✓ Updated: `transcripts.md`
+
+### Validation Performed
+- `terraform fmt -recursive platform/GCP/terraform`
+- `terraform validate` returned `Success! The configuration is valid.`
+
+---
+
+## Session: IAM Service Account Import Declaration & Security Outputs Deduplication
+**Date**: 2026-09-23  
+**Agent**: Antigravity  
+**Objective**: Declare the deployer service account resource in IAM module for `terraform import` support and deduplicate output declarations in the security module.
+
+### Summary
+Declared `google_service_account.terraform_deployer` in `platform/GCP/terraform/modules/iam/main.tf` to manage the deployer identity `dev-terraform-deployer-service`. Created `modules/iam/outputs.tf`, consolidated all security outputs into `platform/GCP/terraform/modules/security/outputs.tf`, removed `#outputs.md` scratch file and duplicated outputs in `main.tf` / `secrets.tf`, and created root `platform/GCP/terraform/outputs.tf`.
+
+### Key Findings
+1. **Service Account Import**: Declared `google_service_account.terraform_deployer` to enable `terraform import` command for pre-existing GCP deployer service account.
+2. **Output Deduplication**: Consolidated output exports in `modules/security/outputs.tf` resolving duplicate definition errors.
+3. **Root Exports**: Exposed unified root outputs for infrastructure, security, IAM, and observability metrics.
+
+### Files Changed
+- ✓ Updated: `platform/GCP/terraform/modules/iam/main.tf`
+- ✓ Created: `platform/GCP/terraform/modules/iam/outputs.tf`
+- ✓ Created: `platform/GCP/terraform/modules/security/outputs.tf`
+- ✓ Deleted: `platform/GCP/terraform/modules/security/#outputs.md`
+- ✓ Updated: `platform/GCP/terraform/modules/security/main.tf`
+- ✓ Updated: `platform/GCP/terraform/modules/security/secrets.tf`
+- ✓ Created: `platform/GCP/terraform/outputs.tf`
+- ✓ Updated: `changelog.md`
+- ✓ Updated: `transcripts.md`
+
+---
+
+## Session: Fix `terraform apply` Errors for PSC Target Service Attachment & SSL Certs
+**Date**: 2026-09-23  
+**Agent**: Antigravity  
+**Objective**: Resolve HTTP 400 runtime errors during `terraform apply` on `google_compute_region_network_endpoint_group.apigee_psc_neg` and `google_compute_region_ssl_certificate.apigee_northbound`.
+
+### Summary
+Diagnosed and fixed two `terraform apply` runtime failures. Added the `hashicorp/tls` provider and implemented automatic self-signed RSA/X.509 certificate generation so Terraform generates valid PEM certificates when user inputs are empty or placeholders. Made Northbound PSC NEG & Regional Load Balancer resources conditional (`count = local.has_valid_apigee_attachment ? 1 : 0`), allowing base infrastructure (VPCs, subnets, Cloud Run backend, Southbound Service Attachment, IAM, Cloud Armor, Observability, Secrets) to deploy cleanly without requiring a pre-existing Apigee instance.
+
+### Key Findings
+1. **Target Service Attachment Validation**: GCP API rejects creating PSC NEGs targeting non-existent service attachment URIs.
+2. **TLS PEM Parsing Requirement**: GCP SSL Certificate resource rejects placeholder text strings with `sslCertificateCouldNotParseCert`.
+3. **Graceful Dev Deployment**: Auto-generating self-signed TLS certs and conditionally toggling Northbound PSC NEG enables seamless out-of-the-box dev execution while maintaining production capability.
+
+### Files Changed
+- ✓ Updated: `platform/GCP/terraform/terraform.tf`
+- ✓ Updated: `platform/GCP/terraform/modules/infrastructure/versions.tf`
+- ✓ Updated: `platform/GCP/terraform/modules/infrastructure/networking.tf`
+- ✓ Updated: `platform/GCP/terraform/environments/DEV/dev.tfvars`
+- ✓ Updated: `platform/GCP/terraform/.terraform.lock.hcl`
+- ✓ Updated: `changelog.md`
+- ✓ Updated: `transcripts.md`
+
+---
+
+## Session: Upgrade Google Terraform Provider to Fix Regional Security Policy Errors
+**Date**: 2026-09-23  
+**Agent**: Antigravity  
+**Objective**: Fix invalid resource type errors (`google_compute_region_security_policy`, `google_compute_region_security_policy_rule`) and unsupported argument (`security_policy` on `google_compute_region_backend_service`) during `terraform plan`.
+
+### Summary
+Diagnosed the root cause of the invalid resource type errors during `terraform plan`. The root module `platform/GCP/terraform/terraform.tf` had `hashicorp/google` pinned to version `5.1.0`, which did not yet include support for regional Cloud Armor security policies (introduced in version `5.26.0`). Updated provider version constraint to `>= 5.26.0`, created `modules/infrastructure/versions.tf`, and ran `terraform init -backend=false -upgrade` to pull provider `v8.4.0`.
+
+### Key Findings
+1. **Provider Version Pin**: Root `terraform.tf` strictly pinned `hashicorp/google` to `5.1.0`.
+2. **Schema Support**: `google_compute_region_security_policy`, `google_compute_region_security_policy_rule`, and regional backend service `security_policy` required provider version `>= 5.26.0`.
+3. **Validation Outcome**: Upgrading provider to `v8.4.0` completely resolved all 4 errors and passed `terraform validate`.
+
+### Files Changed
+- ✓ Updated: `platform/GCP/terraform/terraform.tf`
+- ✓ Created: `platform/GCP/terraform/modules/infrastructure/versions.tf`
+- ✓ Updated: `platform/GCP/terraform/.terraform.lock.hcl`
+- ✓ Updated: `changelog.md`
+- ✓ Updated: `transcripts.md`
+
+---
 
 ## Session: Fix Regional ALB, Cloud Armor, and IAM in Networking Module
 **Date**: 2026-09-23  

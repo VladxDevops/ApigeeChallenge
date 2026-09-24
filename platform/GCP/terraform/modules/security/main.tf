@@ -340,36 +340,4 @@ data "google_compute_network" "api_spoke" {
   depends_on = [] # Note: Assumes network is created by infrastructure module
 }
 
-################################################################################
-# OUTPUTS: Export security resources for use by other modules
-################################################################################
 
-output "cloud_armor_policy_id" {
-  description = "ID of the Cloud Armor security policy."
-  value       = google_compute_security_policy.api_spoke_waf.id
-}
-
-output "cloud_armor_policy_name" {
-  description = "Name of the Cloud Armor security policy (for attaching to load balancers)."
-  value       = google_compute_security_policy.api_spoke_waf.name
-}
-
-output "cloud_armor_policy_self_link" {
-  description = "Self-link of the Cloud Armor security policy."
-  value       = google_compute_security_policy.api_spoke_waf.self_link
-}
-
-output "cloud_run_service_account_email" {
-  description = "Email of the Cloud Run service account."
-  value       = var.create_cloud_run_service_account ? google_service_account.cloud_run_sa[0].email : null
-}
-
-output "cloud_run_service_account_id" {
-  description = "Unique ID of the Cloud Run service account."
-  value       = var.create_cloud_run_service_account ? google_service_account.cloud_run_sa[0].unique_id : null
-}
-
-output "apigee_admin_service_account_email" {
-  description = "Email of the Apigee admin service account."
-  value       = var.create_apigee_admin_service_account ? google_service_account.apigee_admin_sa[0].email : null
-}

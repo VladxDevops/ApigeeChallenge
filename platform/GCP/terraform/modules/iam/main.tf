@@ -1,7 +1,10 @@
-#Terraform deployer sevice account: 
-
-
-#Terraform service account roles: 
+# Terraform Deployer Service Account declaration
+resource "google_service_account" "terraform_deployer" {
+  account_id   = "dev-terraform-deployer-service"
+  display_name = "Terraform Deployer Service Account"
+  project      = var.compute_project_id
+  description  = "Dedicated service account used by Terraform for GCP resource provisioning."
+}
 
 # Terraform Deployer Service Account Roles:
 
