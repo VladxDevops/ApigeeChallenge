@@ -154,3 +154,9 @@ variable "apigee_envgroup_hostnames" {
   type        = list(string)
   default     = ["api.example.com"]
 }
+
+# Apigee service account variable:
+variable "apigee_admin_service_account_name_dev" {
+  description = "Name of the Apigee admin service account."
+  type        = string
+}

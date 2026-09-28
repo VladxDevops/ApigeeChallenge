@@ -72,3 +72,9 @@ variable "southbound_endpoint_attachment_id" {
   type        = string
   default     = "cloudrun-backend"
 }
+
+# Apigee service account name (used for Apigee administration).
+variable "apigee_admin_service_account_name_dev" {
+  description = "Name of the Apigee admin service account."
+  type        = string
+}

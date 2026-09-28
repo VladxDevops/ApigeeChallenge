@@ -153,6 +153,12 @@ resource "google_project_iam_member" "terraform_sa_devops_role" {
   role    = "roles/iam.devOps"
   member  = "serviceAccount:${var.terraform_deployer_service_account}"
 }
+
+resource "google_project_iam_member" "terraform_sa_apigee_admin_role" {
+  project = var.compute_project_id
+  role    = "roles/apigee.admin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
 ###End of Roles for terraform deployer service account
 
 

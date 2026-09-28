@@ -16,6 +16,22 @@ resource "google_apigee_organization" "org" {
   description         = "Apigee organization (non-VPC-peering, PSC connectivity)."
 }
 
+### Apiegee service account:
+
+resource "google_service_account" "apigee-admin-sa" {
+  account_id   = var.apigee_admin_service_account_name_dev
+  display_name = "Apigee Admin Service Account Dev"
+  project      = var.compute_project_id
+  description  = "Dedicated service account used by Apigee for administration."
+}
+
+resource "google_project_iam_member" "apigee-admin-sa" {
+  project = var.compute_project_id
+  role    = "roles/apigee.admin"
+  member  = "serviceAccount:${var.apigee_admin_service_account_name_dev}@${var.compute_project_id}.iam.gserviceaccount.com"
+  
+}
+
 # Runtime instance. consumer_accept_list controls which projects may attach
 # a northbound PSC NEG to this instance's service attachment.
 resource "google_apigee_instance" "apigee_instance" {
