@@ -116,10 +116,10 @@ variable "cloud_run_service_name" {
   description = "Name of the Cloud Run service acting as the backend."
 }
 
-variable "apigee_consumer_project_id" {
-  type        = string
-  description = "Project ID or number of the Apigee (or other) consumer allowed to connect via PSC."
-}
+#variable "apigee_consumer_project_id" {
+#  type        = string
+#  description = "Project ID or number of the Apigee (or other) consumer allowed to connect via PSC."
+#}
 
 variable "apigee_northbound_service_attachment" {
   type        = string
@@ -133,4 +133,24 @@ variable "tls_private_key" {
 
 variable "tls_certificate" {
   type = string
+}
+
+
+### Apigee module variables:
+
+variable "apigee_analytics_region" {
+  description = "Apigee analytics region. Verify it against the regions Apigee supports for analytics."
+  type        = string
+}
+
+variable "apigee_billing_type" {
+  description = "Apigee billing type: EVALUATION, SUBSCRIPTION or PAYG."
+  type        = string
+  default     = "EVALUATION"
+}
+
+variable "apigee_envgroup_hostnames" {
+  description = "Hostnames routed to the Apigee environment group (must match what clients send through the external ALB)."
+  type        = list(string)
+  default     = ["api.example.com"]
 }

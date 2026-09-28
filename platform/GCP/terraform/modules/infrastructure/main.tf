@@ -17,3 +17,8 @@ output "psc_nat_subnet_id" {
   description = "ID of the Private Service Connect NAT subnet."
   value       = google_compute_subnetwork.psc_nat.id
 }
+
+output "api_psc_service_attachment_id" {
+  description = "ID of the southbound PSC service attachment published to Apigee."
+  value       = google_compute_service_attachment.api_psc.id
+}
