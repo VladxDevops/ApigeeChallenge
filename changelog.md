@@ -11,7 +11,7 @@ related = [
     "AI_MANIFEST.toml"
 ]
 updated_by = "Antigravity AI"
-version = "1.4"
+version = "1.5"
 +++
 
 > **Parent**: [`README.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/README.md)
@@ -24,6 +24,28 @@ version = "1.4"
 - When to Retrieve: Auditing project history, understanding the evolution of a decision, or writing a new entry.
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
+
+## 2026-09-29 — Recorded implementation choices for Apigee, addressing, and Cloud Armor
+
+**Status**: Documented. Not applied.
+
+**What changed**:
+- Apigee organization `project_id` stays `var.compute_project_id`.
+- The Apigee admin account is `var.apigee_admin_service_account_name_dev` in `modules/apigee`. `apigee-admin-sa` in `modules/security` is the one to retire.
+- `environments/DEV/dev.tfvars` will be moved to the addressing-plan CIDRs (`10.80.0.0/28`, `10.80.0.16/29`, `10.80.0.64/26`). The next apply replaces the live subnets.
+- Cloud Armor for the northbound backend stays the regional policy. The global policy in `modules/security` is to be removed.
+- Apigee `analytics_region` will use `var.compute_region` instead of a hardcoded `us-south1`.
+
+**Why**: These choices were set so the plan, checklist, and module contracts stop contradicting each other.
+
+**Files**:
+- `internalDocumentation/Planning/plan.md`
+- `internalDocumentation/Planning/checklist.md`
+- `platform/GCP/terraform/modules/apigee/Agents.md`
+- `platform/GCP/terraform/modules/apigee/README.md`
+- `platform/GCP/terraform/modules/infrastructure/Agents.md`
+
+---
 
 ## 2026-09-24 — Embed Regional Cloud Armor Security Policy Rules Inline & State Cleanup
 **Status**: Completed and validated

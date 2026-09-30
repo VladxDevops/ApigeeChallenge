@@ -99,7 +99,7 @@ VPC and subnets:
 - `var.api_vpc_cidr` documents the supernet. No resource takes its address range. Do not create a subnet from the `/16`.
 - CIDR values stay in variables. Do not hardcode them in `networking.tf`.
 
-Addressing conflict, as of this writing: [`addressing-plan.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/docs/networking/addressing-plan.md) proposes `10.80.0.0/28`, `10.80.0.16/29`, and `10.80.0.64/26` packed inside `10.80.0.0/24`. `environments/DEV/dev.tfvars` sets `10.80.1.0/28`, `10.80.3.0/29`, and `10.80.2.0/26`. Do not silently edit either side. Reconciling them is an addressing decision: update the plan, the tfvars, and `changelog.md` together, and expect subnet replacement.
+Addressing: [`addressing-plan.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/docs/networking/addressing-plan.md) is the source. `environments/DEV/dev.tfvars` still has `10.80.1.0/28`, `10.80.3.0/29`, and `10.80.2.0/26`. Update the tfvars to `10.80.0.0/28`, `10.80.0.16/29`, and `10.80.0.64/26`, and record the change in `changelog.md`. Those subnets are already applied, so the next apply replaces them. Do not edit the addressing plan to match the old tfvars.
 
 Southbound PSC and Cloud Run:
 
@@ -120,7 +120,7 @@ Northbound:
 
 Cloud Armor in this module:
 
-- The policy attached to the northbound backend is the regional `google_compute_region_security_policy.api_armor_policy` (`name = "api-armor-policy"`). A regional `EXTERNAL_MANAGED` backend cannot use the global policy in `modules/security/`.
+- The policy attached to the northbound backend is the regional `google_compute_region_security_policy.api_armor_policy` (`name = "api-armor-policy"`). Remove the global `google_compute_security_policy.api_spoke_waf` in `modules/security`. A regional `EXTERNAL_MANAGED` backend cannot use that global policy.
 - Put rules in the `rules` blocks of that resource. Do not add `google_compute_region_security_policy_rule`. Standalone rule resources made apply fail on refresh; see [`postmortem.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/docs/TROUBLESHOOTING/postmortem.md).
 - The inline deny of `9.9.9.9/32` is an example. Replacing it is a security-model change, not a drive-by cleanup.
 

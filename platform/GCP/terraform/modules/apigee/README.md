@@ -84,7 +84,7 @@ Southbound: `modules/infrastructure` publishes `google_compute_service_attachmen
 | Northbound service attachment URI exported for the load balancer | This module's output, consumed by root `apigee_northbound_service_attachment` |
 | Southbound endpoint attachment | This module |
 | API spoke VPC, subnets, producer service attachment, regional external load balancer, Cloud Run | `modules/infrastructure` |
-| `apigee-admin-sa` and `roles/apigee.admin` | `modules/security` |
+| Apigee admin service account (`apigee_admin_service_account_name_dev`) and `roles/apigee.admin` | This module. Retire `apigee-admin-sa` in `modules/security`. |
 | Dashboards and the `apigee_target_errors` log metric | `modules/observability` |
 | API proxy bundles | `APPS/APIgee/proxies/` |
 | `apigee.googleapis.com` and other project APIs | `modules/enable-gcp-services` (Apigee API is not enabled there today) |
@@ -99,7 +99,9 @@ Southbound: `modules/infrastructure` publishes `google_compute_service_attachmen
 - The endpoint attachment's target is the infrastructure service attachment URI. Connection preference on that attachment stays `ACCEPT_MANUAL`.
 - Region stays `us-south1`, taken from a variable. Do not hardcode a second region.
 - Organization billing type (evaluation, pay-as-you-go, or subscription) is still an open assumption in `docs/assumptions/assumptions-risks-tradeoffs.md`. Do not pick one silently in examples.
-- Admin calls use the security module's Apigee admin service account. Do not create a second admin service account or a JSON key here.
+- The organization `project_id` is `var.compute_project_id`.
+- `analytics_region` is `var.compute_region`, not a hardcoded `us-south1`.
+- Admin calls use `var.apigee_admin_service_account_name_dev` in this module. Do not also keep `apigee-admin-sa` in `modules/security`. Do not write a JSON key.
 - Exact Google provider arguments for a non-VPC-peering organization and for reading the instance's northbound service attachment are `UNVERIFIED` in this repository. Confirm them against current Apigee and `hashicorp/google` documentation before adding resources. `docs/networking/network-architecture.md` already notes that steps from organization provisioning through the endpoint attachment may need sequencing beyond a single Terraform apply.
 
 
@@ -111,13 +113,13 @@ These names are the contract to wire at the root. They are not declared in this 
 | Input | Source | Purpose |
 |---|---|---|
 | `compute_project_id` | Root variable | Project that hosts the Apigee organization |
-| `compute_region` | Root variable, `us-south1` | Instance and endpoint attachment location |
+| `compute_region` | Root variable, `us-south1` | Instance location, endpoint attachment location, and `analytics_region` |
 | `southbound_service_attachment` | `module.infrastructure` service attachment self link | Target of the endpoint attachment |
-| `apigee_admin_service_account_email` | `module.security.apigee_admin_service_account_email` | Identity for Apigee admin operations |
+| `apigee_admin_service_account_name_dev` | Root variable | `account_id` of the admin service account created in this module |
 
 | Output | Consumer | Purpose |
 |---|---|---|
-| `organization_id` | `modules/security` `apigee_organization_id` | Replaces the root placeholder `"Apigee Organization"`. That placeholder is non-empty, so `roles/apigee.admin` is already bound at project level. |
+| `organization_id` | Callers that need the organization id | The organization is created in `var.compute_project_id`. `roles/apigee.admin` is bound in this module on `apigee_admin_service_account_name_dev`. |
 | `northbound_service_attachment` | Root `apigee_northbound_service_attachment` | Opens the infrastructure northbound load-balancer chain |
 | `endpoint_attachment_host` | Proxy target configuration | Host or DNS name the TargetEndpoint uses |
 
@@ -128,7 +130,7 @@ There is no usage example that applies. Adding `module "apigee"` to `infrastruct
 ## Preconditions before that work
 
 - `apigee.googleapis.com` enabled on the project.
-- A real organization id passed into `modules/security` so `roles/apigee.admin` can bind.
+- `roles/apigee.admin` bound in this module on `apigee_admin_service_account_name_dev`. The security-module account `apigee-admin-sa` is not the admin identity.
 - The infrastructure service attachment already applied, because the endpoint attachment depends on it.
 - No `terraform apply` without an authorization that names the environment. Provisioning an Apigee organization is slow and hard to reverse.
 

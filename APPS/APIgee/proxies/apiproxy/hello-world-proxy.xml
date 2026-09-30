@@ -1,0 +1,14 @@
+<APIProxy revision="1" name="hello-world-proxy">
+  <ConfigurationVersion majorVersion="4" minorVersion="0"/>
+  <Description>Minimal pass-through proxy learning exercise: forwards /hello to the Cloud Run hello-world backend over southbound PSC.</Description>
+  <DisplayName>hello-world-proxy</DisplayName>
+  <Policies/>
+  <ProxyEndpoints>
+    <ProxyEndpoint>default</ProxyEndpoint>
+  </ProxyEndpoints>
+  <Resources/>
+  <TargetServers/>
+  <TargetEndpoints>
+    <TargetEndpoint>default</TargetEndpoint>
+  </TargetEndpoints>
+</APIProxy>
