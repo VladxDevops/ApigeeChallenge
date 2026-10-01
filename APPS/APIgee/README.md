@@ -36,3 +36,34 @@ This directory holds the **API proxy bundles** deployed into the Apigee organiza
 An Apigee API proxy is **configuration, not compute**. It's a folder of XML files — no Dockerfile, no container image, no build step. Apigee's managed runtime reads the XML directly; "deploying" a proxy means zipping the folder and uploading it to the Apigee Management API, not building and pushing an image. If you're picturing a second Cloud Run service or container for the proxy, that's not how this works — see `Agents.md` for the detail.
 
 ## What's here
+
+## Proxy bundle source of truth and zip workflow
+
+The XML files under `proxies/<proxy-name>/apiproxy/` are the source of truth. The generated `.zip` file is an import artifact used only to upload the bundle into Apigee.
+
+Use exactly one active bundle per proxy name. In this repo, the canonical smoke-test bundle is:
+
+- `APPS/APIgee/proxies/hello-world-proxy/apiproxy`
+
+The `hello-cloudrun` directory is a separate experimental or archived bundle and should not be treated as the active repo source of truth unless the team intentionally decides to keep both bundles as supported proxies.
+
+When to generate the zip:
+- after the XML is valid and the manifest name matches the folder name
+- after `BasePath`, target URL, and hostname/port checks pass
+- immediately before import or re-import into the target Apigee org/environment
+
+When to upload the zip:
+- only after the bundle is reviewed and stable enough for import testing
+- only to the intended Apigee org/environment
+- only when the team is ready to deploy a change to live traffic
+
+Do not commit the zip as source. The zip can be recreated from the XML at any time.
+
+Generate the zip from the bundle directory:
+
+```bash
+cd /home/pochitawork/InterviewCloudProjects/ApigeeChallenge/APPS/APIgee/proxies/hello-world-proxy
+zip -r ../hello-world-proxy.zip apiproxy
+```
+
+This creates a zip whose root is `apiproxy/`, which is the format Apigee expects for import.

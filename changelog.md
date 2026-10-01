@@ -25,6 +25,29 @@ version = "1.5"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+## 2026-10-01 — Document Terraform remote-state billing failure
+
+**Status**: Documented. Deployment remains blocked by external GCP billing state.
+
+**What changed**:
+- Added the troubleshooting note in `docs/TROUBLESHOOTING/terraform-errors/terraform-errors.md` documenting the actual `terraform apply` failure for `module.infrastructure`.
+- Recorded the root cause: the repository's GCS remote backend was inaccessible because the owning GCP project had a billing account in `UserProjectAccountProblem` / disabled state.
+- Added the required remediation sequence: restore billing, re-authenticate, reinitialize the backend, and rerun `terraform init` / `terraform plan` / `terraform apply`.
+
+**Why**:
+- The configuration is valid (`terraform validate` returned `Success! The configuration is valid.`), but Terraform cannot open the remote state file at `gs://terraform_state_backend_rocket/terraform/state/default.tfstate` while the backend project is billing-blocked.
+- The error is environmental and prevents any apply from proceeding before that GCP state is fixed.
+
+**Files**:
+- `docs/TROUBLESHOOTING/terraform-errors/terraform-errors.md`
+- `platform/GCP/terraform/backends.tf`
+
+**Validation performed**:
+- Reproduced the failure with `terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.infrastructure`.
+- Confirmed `terraform validate` still returns `Success! The configuration is valid.`
+
+---
+
 ## 2026-09-30 — Executed planning refactoring, module contract completion, and proxy bundle creation
 
 **Status**: Implemented & Validated locally. Live GCP apply blocked by GCP project billing status.
@@ -344,5 +367,30 @@ version = "1.5"
 - Updated: `platform/GCP/terraform/modules/security/variables.tf`
 - Updated: `docs/security/security-model.md`
 - Updated: `platform/GCP/terraform/modules/security/QUICK_REFERENCE.md`
+
+---
+
+## 2026-10-01 — Clarified Apigee proxy source of truth and zip/import workflow
+
+**Status**: Documented.
+
+**What changed**:
+- Confirmed the canonical bundle in `APPS/APIgee/proxies/hello-world-proxy/apiproxy`.
+- Documented that `hello-cloudrun` is a separate experimental bundle and not the repo’s active source of truth unless explicitly adopted.
+- Added explicit instructions for when to generate a `.zip` and when to upload it to Apigee.
+- Added the exact zip command used in this repo to generate an importable proxy bundle.
+
+**Why**:
+- The repo previously had duplicated proxy bundle directories with conflicting XML values and no explicit rule for which one is authoritative.
+- The zip artifact is a deployment artifact, not a source file, so the XML remains the canonical material.
+
+**Files**:
+- `APPS/APIgee/README.md`
+- `APPS/APIgee/Agents.md`
+- `docs/operations/deployment-and-validation.md`
+
+**Validation performed**:
+- Reviewed the bundle contents and confirmed `hello-world-proxy` is the canonical smoke-test bundle.
+- Confirmed the zip command matches the repo’s required `apiproxy/` archive-root convention.
 
 ---

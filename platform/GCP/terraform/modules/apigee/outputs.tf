@@ -29,3 +29,8 @@ output "endpoint_attachment_host" {
   description = "Host IP/address of the southbound Apigee endpoint attachment."
   value       = google_apigee_endpoint_attachment.cloud_run_backend.host
 }
+
+output "apigee_service_account_email" {
+  description = "The email address of the Apigee service account."
+  value       = google_service_account.apigee-admin-sa.email
+}

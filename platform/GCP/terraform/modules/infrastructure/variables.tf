@@ -57,6 +57,12 @@ variable "cloud_run_service_name" {
   default     = "rocketcode-demo-backend"
 }
 
+variable "cloud_run_invoker_members" {
+  type        = list(string)
+  description = "List of IAM members (e.g. ['serviceAccount:apigee-sa@...']) authorized to invoke the Cloud Run service."
+  default     = []
+}
+
 variable "cloud_run_image" {
   description = "Container image for the Cloud Run backend service."
   type        = string

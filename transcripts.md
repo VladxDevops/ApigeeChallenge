@@ -421,3 +421,27 @@ terraform apply lb.tfplan
 terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.observability -out=observability.tfplan
 terraform apply observability.tfplan
 ```
+
+## Session: Clarify Apigee proxy source of truth and zip workflow
+**Date**: 2026-10-01  
+**Agent**: Copilot  
+**Objective**: Resolve the duplicated proxy bundle confusion and document the safe zip-generation/import sequence.
+
+### Summary
+1. Identified `APPS/APIgee/proxies/hello-world-proxy/` as the canonical smoke-test bundle.
+2. Treated `APPS/APIgee/proxies/hello-cloudrun/` as a separate experimental bundle due to conflicting BasePath, target scheme, and repo documentation.
+3. Added explicit instructions for when to create the `.zip` and when to upload it to Apigee.
+4. Kept the XML under `apiproxy/` as the source of truth and the zip as the generated import artifact.
+
+### Files Changed
+- `APPS/APIgee/README.md`
+- `APPS/APIgee/Agents.md`
+- `docs/operations/deployment-and-validation.md`
+- `changelog.md`
+- `transcripts.md`
+
+### Validation Performed
+- Reviewed proxy bundle XML and repo documentation for conflicting values.
+- Confirmed the zip command uses the required `apiproxy/` archive root, matching repo rules.
+
+---

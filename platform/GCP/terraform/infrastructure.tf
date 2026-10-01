@@ -16,6 +16,9 @@ module "infrastructure" {
   apigee_northbound_service_attachment = var.apigee_northbound_service_attachment
   tls_private_key                      = var.tls_private_key
   tls_certificate                      = var.tls_certificate
+  cloud_run_invoker_members = [
+    "serviceAccount:${module.apigee.apigee_service_account_email}"
+  ]
 }
 
 ################################################################################

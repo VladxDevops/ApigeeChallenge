@@ -22,7 +22,6 @@ RUN groupadd --gid 10001 appgroup \
 
 WORKDIR /app
 
-COPY --from=build --chown=appuser:appgroup /app/node_modules ./node_modules
 COPY --from=build --chown=appuser:appgroup /app/package.json ./package.json
 COPY --from=build --chown=appuser:appgroup /app/src ./src
 

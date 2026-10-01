@@ -113,15 +113,15 @@ resource "google_compute_forwarding_rule" "api_ilb" {
   depends_on = [google_compute_subnetwork.regional_proxy_only]
 }
 
-# Allow internal load balancer / serverless NEG to invoke the Cloud Run service.
-# Cloud Run is isolated via INGRESS_TRAFFIC_INTERNAL_ONLY, so allUsers only allows traffic
-# originating from within internal GCP network paths (such as the internal load balancer).
+# Allow specific service accounts (e.g. Apigee SA) to invoke the Cloud Run service.
 resource "google_cloud_run_v2_service_iam_member" "cloud_run_invoker" {
+  for_each = toset(var.cloud_run_invoker_members)
+
   project  = var.compute_project_id
   location = var.compute_region
   name     = var.cloud_run_service_name
   role     = "roles/run.invoker"
-  member   = "allUsers"
+  member   = each.value
 
   depends_on = [google_cloud_run_v2_service.api_backend]
 }

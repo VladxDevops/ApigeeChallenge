@@ -29,7 +29,12 @@ resource "google_project_iam_member" "apigee-admin-sa" {
   project = var.compute_project_id
   role    = "roles/apigee.admin"
   member  = "serviceAccount:${var.apigee_admin_service_account_name_dev}@${var.compute_project_id}.iam.gserviceaccount.com"
+}
 
+resource "google_project_iam_member" "apigee_sa_cloud_run_invoker" {
+  project = var.compute_project_id
+  role    = "roles/run.invoker"
+  member  = "serviceAccount:${google_service_account.apigee-admin-sa.email}"
 }
 
 # Runtime instance. consumer_accept_list controls which projects may attach

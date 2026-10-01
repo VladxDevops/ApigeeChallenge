@@ -1,21 +1,22 @@
-+++
+
+++ 
 title = "Public README — Rocket Code Apigee Challenge"
 domain = "entry-point"
 tier = 1
 topics = ["apigee", "gcp", "overview", "getting-started"]
 parent = "README.md"
 children = [
-    "docs/architecture/architecture.md",
-    "docs/decisions/architecture-decisions.md",
-    "docs/networking/addressing-plan.md",
-    "docs/security/security-model.md",
-    "docs/assumptions/assumptions-risks-tradeoffs.md"
+        "docs/architecture/architecture.md",
+        "docs/decisions/architecture-decisions.md",
+        "docs/networking/addressing-plan.md",
+        "docs/security/security-model.md",
+        "docs/assumptions/assumptions-risks-tradeoffs.md"
 ]
 related = [
-    "AGENTS.md",
-    "AI_MANIFEST.toml",
-    "Challenge/challenge.md",
-    "Architecture-baseline.md"
+        "AGENTS.md",
+        "AI_MANIFEST.toml",
+        "Challenge/challenge.md",
+        "Architecture-baseline.md"
 ]
 updated_by = "Antigravity AI"
 version = "1.1"
@@ -35,42 +36,69 @@ version = "1.1"
 
 # Rocket Code — Cloud Engineer DevOps Technical Exercise
 
-This repository contains the proposed GCP + Terraform solution for the API exposure and private-connectivity technical evaluation.
+**Status: In Progress**
 
-## Start here
+Short description: 
+this repository contains a focused GCP + Apigee reference implementation for the Rocket Code API exposure exercise. The architecture has been selected and a Terraform scaffold exists; documentation, validation, and a small set of remaining implementation tasks are in active progress.
 
-1. Read `AGENTS.md`.
-2. Read this `README.md`.
-3. Review `docs/architecture/architecture.md` once the architecture is established.
-4. Review `docs/decisions/architecture-decisions.md`.
-5. Review `docs/networking/addressing-plan.md`.
-6. Review `docs/security/security-model.md`.
-7. Review `docs/assumptions/assumptions-risks-tradeoffs.md`.
+## Quick Tour
 
-Internal working material is intentionally kept under `/internalDocumentation/` and is Git-ignored.
+- **Purpose:** Provide a reproducible, secure GCP design and Terraform implementation that demonstrates private connectivity between an Apigee-managed runtime and customer backends.
+- **Start here:** [docs/architecture/architecture.md](docs/architecture/architecture.md) — architecture snapshot and diagram links.
+- **Traffic flows:** [docs/architecture/traffic-flows.md](docs/architecture/traffic-flows.md) — step‑by‑step data‑plane and response paths.
+- **Network / addressing:** [docs/networking/addressing-plan.md](docs/networking/addressing-plan.md) — CIDR allocation and subnet plan.
+- **Terraform:** [platform/GCP/terraform/README.md](platform/GCP/terraform/README.md) — entry point for infrastructure code.
+- **Deploy & validate:** [docs/operations/deployment-and-validation.md](docs/operations/deployment-and-validation.md) — quick checks and validation evidence.
 
-## Status
+## Executive Summary
 
-Architecture: 
-Selected baseline is Apigee non-VPC-peering in `us-south1`, using Private Service Connect for northbound and southbound private connectivity.  
-Terraform: 
-Planning scaffold exists under `platform/GCP/terraform`; implementation is intentionally incremental and starts with APIs, IAM, VPC, proxy-only subnet, and PSC NAT subnet.  
-Validation: 
-Documentation consistency reviewed against `Challenge/challenge.md` and current Google Cloud / Apigee documentation. Terraform formatting and validation should be run before any plan.  
-Submission artifacts: 
-Core public documents exist under `docs/`; generate the final diagram PNG/PDF after the Terraform resource topology is finalized.
+This project demonstrates a constrained, secure topology where external API traffic is handled by a provider-managed Apigee runtime (treated as an external trust boundary). Traffic enters through a cloud load balancer/WAF and reaches Apigee via provider-supported private ingress; Apigee reaches private backends using provider-managed attachments (e.g., Private Service Connect). Backends (Cloud Run or private services) remain inside customer VPCs or a central Hub and are not exposed directly to the public Internet.
 
-## Selected design in one paragraph
+## What’s Implemented vs TODO
 
-External clients reach a regional external Application Load Balancer protected by Cloud Armor. The load balancer sends API traffic to the provider-managed Apigee runtime through northbound Private Service Connect. Apigee remains outside the customer VPC and is not assigned organization-owned CIDRs. For private targets, Apigee uses southbound Private Service Connect endpoint attachments to reach service attachments published from the customer-controlled API/backend VPC. Cloud Run is the baseline cloud application backend and is reachable only through private/load-balancing paths. Existing on-premises systems remain behind the central Hub VPC and Cloud VPN; no backend is directly exposed to the Internet.
+- **Implemented:**
+    - Terraform scaffold and modules under `platform/GCP/terraform` (apigee, backends, IAM, VPC basics).
+    - Example proxies / sample apps in `APPS/` demonstrating Cloud Run backends and simple Apigee proxies.
+    - Core documentation skeleton under `docs/` (architecture, decisions, networking, security, operations).
+- **In progress / TODO:**
+    - Complete end-to-end Terraform validation and evidence (plans, manifests, automated checks).
+    - Finalize rendered architecture diagrams (PNG/SVG) in `docs/architecture/diagrams/rendered`.
+    - Resolve a small set of UNVERIFIED platform behaviors and document them explicitly.
 
-## Key documents
+## How to Validate — Quick Checks
 
-- `docs/architecture/architecture.md` - architectural overview.
-- `docs/architecture/traffic-flows.md` - end-to-end data-plane flows and return paths.
-- `docs/networking/network-architecture.md` - network components to provision.
-- `docs/networking/addressing-plan.md` - proposed non-overlapping ranges.
-- `docs/decisions/architecture-decisions.md` - decision record for the oral defense.
-- `docs/security/security-model.md` - authentication, authorization, TLS, secrets, and IAM.
-- `docs/assumptions/assumptions-risks-tradeoffs.md` - declared assumptions and open risks.
-- `docs/operations/deployment-and-validation.md` - Terraform deployment and evidence plan.
+Run these locally in the Terraform directory before planning or applying. Do not run `terraform apply` in a shared or production project without authorization.
+
+```bash
+cd platform/GCP/terraform/
+terraform fmt
+terraform init
+terraform validate
+terraform plan
+```
+
+See [docs/operations/deployment-and-validation.md](docs/operations/deployment-and-validation.md) for full validation steps and required preconditions.
+
+## Cautions & Preconditions
+
+- This repository contains internal-working material under `internalDocumentation/` and `docs/internal/` — those directories are intentionally Git-ignored; do not move secrets or credentials into tracked files.
+- Preconditions: billing enabled for the target project, required GCP quotas, and the necessary Apigee entitlements in the test account.
+- Security: never commit service account keys, Terraform state, or other secrets. Use remote state appropriately and least-privilege service accounts for deploy pipelines.
+- UNVERIFIED items: a few provider-managed runtime behaviors (detailed in `docs/assumptions/assumptions-risks-tradeoffs.md`) remain to be validated against live accounts.
+
+## Repo Layout (short)
+
+- `platform/GCP/terraform/` — Terraform modules and environment configs.
+- `docs/` — Architecture, design decisions, networking, security, operations, and assumptions.
+- `APPS/` — Example proxies and sample Cloud Run backends used for validation.
+- `scripts/` — Helper scripts for validation and local checks.
+- `tests/` — Networking and terraform validation tests.
+- `transcripts.md`, `changelog.md` — change records and agent transcripts.
+
+## Next Steps
+
+- Complete Terraform validation and collect plan outputs for evidence.
+- Render final diagrams and link them from `docs/architecture/architecture.md`.
+- Address and document UNVERIFIED behaviors discovered during validation.
+
+If you want, I can now run link checks for the top referenced docs and finish the todo tracker entries. Would you like me to proceed with link verification? 

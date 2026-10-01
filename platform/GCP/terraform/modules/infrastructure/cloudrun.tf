@@ -41,6 +41,11 @@ resource "google_cloud_run_v2_service" "api_backend" {
       }
     }
   }
+
+  depends_on = [
+    google_artifact_registry_repository.helo_apigee_repo,
+    terraform_data.build_hello_backend
+  ]
 }
 
 output "cloud_run_service_name" {
