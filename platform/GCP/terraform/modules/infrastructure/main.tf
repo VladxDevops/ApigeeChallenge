@@ -22,3 +22,8 @@ output "api_psc_service_attachment_id" {
   description = "ID of the southbound PSC service attachment published to Apigee."
   value       = google_compute_service_attachment.api_psc.id
 }
+
+output "api_armor_policy_name" {
+  description = "Name of the regional Cloud Armor security policy."
+  value       = google_compute_region_security_policy.api_armor_policy.name
+}

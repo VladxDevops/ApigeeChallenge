@@ -118,10 +118,10 @@ resource "google_secret_manager_secret_version" "vpn_shared_secret" {
 locals {
   # Link-local /30s for BGP sessions. Not part of the addressing plan's RFC1918
   # allocations - these are the standard GCP HA VPN interface ranges.
-  tunnel0_hub_ip     = "169.254.0.1/30"
-  tunnel0_onprem_ip  = "169.254.0.2/30"
-  tunnel1_hub_ip     = "169.254.1.1/30"
-  tunnel1_onprem_ip  = "169.254.1.2/30"
+  tunnel0_hub_ip    = "169.254.0.1/30"
+  tunnel0_onprem_ip = "169.254.0.2/30"
+  tunnel1_hub_ip    = "169.254.1.1/30"
+  tunnel1_onprem_ip = "169.254.1.2/30"
 }
 
 # --- Tunnels from the hub side ---
@@ -189,14 +189,14 @@ resource "google_compute_router_interface" "hub_if0" {
 }
 
 resource "google_compute_router_peer" "hub_peer0" {
-  count                     = var.simulate_hub_and_onpremises ? 1 : 0
-  name                      = "sim-hub-peer0"
-  project                   = var.compute_project_id
-  region                    = var.compute_region
-  router                    = google_compute_router.hub[0].name
-  peer_ip_address           = split("/", local.tunnel0_onprem_ip)[0]
-  peer_asn                  = var.onprem_router_asn
-  interface                 = google_compute_router_interface.hub_if0[0].name
+  count           = var.simulate_hub_and_onpremises ? 1 : 0
+  name            = "sim-hub-peer0"
+  project         = var.compute_project_id
+  region          = var.compute_region
+  router          = google_compute_router.hub[0].name
+  peer_ip_address = split("/", local.tunnel0_onprem_ip)[0]
+  peer_asn        = var.onprem_router_asn
+  interface       = google_compute_router_interface.hub_if0[0].name
 }
 
 resource "google_compute_router_interface" "hub_if1" {

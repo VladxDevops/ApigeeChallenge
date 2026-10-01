@@ -37,7 +37,7 @@ output "terraform_deployer_sa_email" {
 
 output "cloud_armor_policy_name" {
   description = "Name of the Cloud Armor WAF security policy."
-  value       = module.security.cloud_armor_policy_name
+  value       = module.infrastructure.api_armor_policy_name
 }
 
 output "cloud_run_service_account_email" {

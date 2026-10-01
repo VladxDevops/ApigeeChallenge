@@ -31,6 +31,8 @@ override.tf.json
 .DS_Store
 Thumbs.db
 *.swp
+*.zip
+
 
 # AI / internal working documentation
 docs/internal/

@@ -25,6 +25,35 @@ version = "1.5"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+## 2026-09-30 — Executed planning refactoring, module contract completion, and proxy bundle creation
+
+**Status**: Implemented & Validated locally. Live GCP apply blocked by GCP project billing status.
+
+**What changed**:
+- Aligned `environments/DEV/dev.tfvars` CIDRs with `docs/networking/addressing-plan.md` (`10.80.0.0/28`, `10.80.0.16/29`, `10.80.0.64/26`).
+- Set `analytics_region` in `modules/apigee/main.tf` to `var.compute_region`.
+- Created `modules/apigee/outputs.tf` exporting `organization_id`, `northbound_service_attachment`, and `endpoint_attachment_host`.
+- Retired duplicate global Cloud Armor WAF policy and duplicate `apigee_admin_sa` from `modules/security/main.tf`.
+- Created sample Apigee API Proxy bundle under `APPS/APIgee/proxies/hello-cloudrun/`.
+- Updated root `outputs.tf` to export `module.infrastructure.api_armor_policy_name`.
+- Ran `terraform fmt -recursive` and `terraform validate` successfully.
+- Updated `internalDocumentation/Planning/checklist.md` documenting completed static gates and live GCP billing constraints.
+
+**Why**: Fulfill execution plan requirements while accurately documenting external GCP account state preconditions.
+
+**Files**:
+- `platform/GCP/terraform/environments/DEV/dev.tfvars`
+- `platform/GCP/terraform/modules/apigee/main.tf`
+- `platform/GCP/terraform/modules/apigee/outputs.tf`
+- `platform/GCP/terraform/modules/security/main.tf`
+- `platform/GCP/terraform/modules/security/outputs.tf`
+- `platform/GCP/terraform/modules/infrastructure/main.tf`
+- `platform/GCP/terraform/outputs.tf`
+- `APPS/APIgee/proxies/hello-cloudrun/apiproxy/*`
+- `internalDocumentation/Planning/checklist.md`
+
+---
+
 ## 2026-09-29 — Recorded implementation choices for Apigee, addressing, and Cloud Armor
 
 **Status**: Documented. Not applied.

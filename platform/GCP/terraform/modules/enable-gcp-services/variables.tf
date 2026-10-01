@@ -25,5 +25,5 @@ variable "terraform_remote_state_bucket_name" {
 # Consume project id: 
 variable "apigee_consumer_project_id" {
   description = "value"
-  type = string
+  type        = string
 }

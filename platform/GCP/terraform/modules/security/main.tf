@@ -31,51 +31,9 @@ locals {
 # while still demonstrating an edge WAF and private backends that are not publicly exposed.
 ################################################################################
 
-# Primary Cloud Armor security policy
-resource "google_compute_security_policy" "api_spoke_waf" {
-  name        = var.cloud_armor_policy_name
-  project     = var.compute_project_id
-  description = var.cloud_armor_policy_description
-  type        = "CLOUD_ARMOR"
-
-  # Default rule: allow unmatched traffic by default for this dev/demo environment.
-  rule {
-    action   = var.cloud_armor_default_rule_action
-    priority = 2147483647
-    match {
-      versioned_expr = "SRC_IPS_V1"
-      config {
-        src_ip_ranges = ["*"]
-      }
-    }
-    description = "Default rule for all traffic not matched by a more specific rule."
-  }
-
-  # Minimal OWASP protections for a demo environment.
-  rule {
-    action   = "deny(403)"
-    priority = 100
-    match {
-      expr {
-        expression = "evaluatePreconfiguredExpr('xss-v33-stable')"
-      }
-    }
-    description = "Block XSS attacks."
-    preview     = var.cloud_armor_enable_preview_rules
-  }
-
-  rule {
-    action   = "deny(403)"
-    priority = 101
-    match {
-      expr {
-        expression = "evaluatePreconfiguredExpr('sqli-v33-stable')"
-      }
-    }
-    description = "Block SQL injection attacks."
-    preview     = var.cloud_armor_enable_preview_rules
-  }
-}
+# Note: Regional Cloud Armor security policy (google_compute_region_security_policy.api_armor_policy)
+# is deployed in modules/infrastructure for the regional external load balancer.
+# Global Cloud Armor policy is omitted to avoid policy scope mismatch on regional backends.
 
 ################################################################################
 # SECTION 2: MINIMAL DEFAULT FIREWALL RULES
@@ -289,25 +247,8 @@ resource "google_project_iam_member" "cloud_run_metric_writer" {
   member  = "serviceAccount:${google_service_account.cloud_run_sa[0].email}"
 }
 
-# Service Account for Apigee administration (if applicable)
-resource "google_service_account" "apigee_admin_sa" {
-  count        = var.create_apigee_admin_service_account ? 1 : 0
-  account_id   = "apigee-admin-sa"
-  project      = var.compute_project_id
-  display_name = "Apigee Administration Service Account"
-  description  = "Service account for Apigee organization and proxy administration with minimal required permissions."
-
-  depends_on = []
-}
-
-# Apigee admin service account: Allow Apigee org admin role (scoped to organization if applicable)
-# Note: This requires an Apigee organization to exist. Binding is skipped if apigee_organization_id is empty.
-resource "google_project_iam_member" "apigee_admin_role" {
-  count   = var.create_apigee_admin_service_account && var.apigee_organization_id != "" ? 1 : 0
-  project = var.compute_project_id
-  role    = "roles/apigee.admin"
-  member  = "serviceAccount:${google_service_account.apigee_admin_sa[0].email}"
-}
+# Note: Apigee admin service account and roles/apigee.admin role assignment
+# are managed centrally inside modules/apigee.
 
 ################################################################################
 # SECTION 5: SECRET MANAGER SETUP (baseline configuration)

@@ -9,7 +9,7 @@ resource "google_project_service" "apigee" {
 # Apigee stays in its Google-managed tenant project and is reached only through PSC.
 resource "google_apigee_organization" "org" {
   project_id          = var.compute_project_id
-  analytics_region    = "us-south1" #var.apigee_analytics_region
+  analytics_region    = var.compute_region
   billing_type        = var.apigee_billing_type
   runtime_type        = "CLOUD"
   disable_vpc_peering = true
@@ -29,7 +29,7 @@ resource "google_project_iam_member" "apigee-admin-sa" {
   project = var.compute_project_id
   role    = "roles/apigee.admin"
   member  = "serviceAccount:${var.apigee_admin_service_account_name_dev}@${var.compute_project_id}.iam.gserviceaccount.com"
-  
+
 }
 
 # Runtime instance. consumer_accept_list controls which projects may attach

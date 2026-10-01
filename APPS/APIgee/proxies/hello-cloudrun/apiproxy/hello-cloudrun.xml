@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<APIProxy revision="1" name="hello-cloudrun">
+    <ConfigurationVersion majorVersion="4" minorVersion="0"/>
+    <CreatedAt>1727720000000</CreatedAt>
+    <Description>Apigee proxy forwarding southbound traffic to Cloud Run backend via Private Service Connect endpoint attachment.</Description>
+    <DisplayName>Hello CloudRun Proxy</DisplayName>
+    <ProxyEndpoints>
+        <ProxyEndpoint>default</ProxyEndpoint>
+    </ProxyEndpoints>
+    <TargetEndpoints>
+        <TargetEndpoint>default</TargetEndpoint>
+    </TargetEndpoints>
+</APIProxy>

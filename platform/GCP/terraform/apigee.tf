@@ -1,13 +1,13 @@
 module "apigee" {
-    source = "./modules/apigee"
-  
-  compute_project_id                 = var.compute_project_id
-  compute_project_number             = var.compute_project_number
-  compute_region                     = var.compute_region
+  source = "./modules/apigee"
+
+  compute_project_id     = var.compute_project_id
+  compute_project_number = var.compute_project_number
+  compute_region         = var.compute_region
   #consumer_project_id                  = var.compute_project_id
   apigee_admin_service_account_name_dev = var.apigee_admin_service_account_name_dev
-  apigee_analytics_region = var.apigee_analytics_region
-  apigee_billing_type     = var.apigee_billing_type
+  apigee_analytics_region               = var.apigee_analytics_region
+  apigee_billing_type                   = var.apigee_billing_type
 
   # Northbound: the project that owns the external ALB's PSC NEG.
   northbound_consumer_project_ids = [var.compute_project_id]

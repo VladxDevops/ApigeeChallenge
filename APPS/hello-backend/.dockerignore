@@ -1,0 +1,18 @@
+# Mirror from repo .gitignore
+.env
+*.zip
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Docker-specific exclusions
+.git
+.gitignore
+Dockerfile
+.dockerignore
+cloudbuild.yaml
+README.md
+Agents.md
+node_modules
+npm-debug.log
+.DS_Store
