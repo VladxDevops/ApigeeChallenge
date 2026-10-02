@@ -35,7 +35,7 @@ resource "google_monitoring_dashboard" "api_latency_dashboard" {
               {
                 timeSeriesQuery = {
                   timeSeriesFilter = {
-                    filter = "metric.type=\"loadbalancing.googleapis.com/https/request_count\" resource.type=\"http_load_balancer\""
+                    filter = "metric.type = \"loadbalancing.googleapis.com/https/request_count\""
                     aggregation = {
                       alignmentPeriod    = "60s"
                       perSeriesAligner   = "ALIGN_RATE"
@@ -63,7 +63,7 @@ resource "google_monitoring_dashboard" "api_latency_dashboard" {
               {
                 timeSeriesQuery = {
                   timeSeriesFilter = {
-                    filter = "metric.type=\"loadbalancing.googleapis.com/https/total_latencies\" resource.type=\"http_load_balancer\""
+                    filter = "metric.type = \"loadbalancing.googleapis.com/https/total_latencies\""
                     aggregation = {
                       alignmentPeriod    = "60s"
                       perSeriesAligner   = "ALIGN_PERCENTILE_95"
@@ -77,7 +77,7 @@ resource "google_monitoring_dashboard" "api_latency_dashboard" {
               {
                 timeSeriesQuery = {
                   timeSeriesFilter = {
-                    filter = "metric.type=\"loadbalancing.googleapis.com/https/backend_latencies\" resource.type=\"http_load_balancer\""
+                    filter = "metric.type = \"loadbalancing.googleapis.com/https/backend_latencies\""
                     aggregation = {
                       alignmentPeriod    = "60s"
                       perSeriesAligner   = "ALIGN_PERCENTILE_95"

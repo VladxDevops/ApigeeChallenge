@@ -22,7 +22,7 @@ resource "google_monitoring_notification_channel" "email" {
 
 # Alert Policy 1: High Backend Latency (Peak-Hour Bottleneck Detection)
 resource "google_monitoring_alert_policy" "high_backend_latency" {
-  count        = var.enable_alerting ? 1 : 0
+  count        = var.enable_alerting && var.create_alerts_when_metrics_ready ? 1 : 0
   project      = var.compute_project_id
   display_name = "Apigee - High Backend Latency (> ${var.latency_threshold_ms}ms)"
   combiner     = "OR"
@@ -30,7 +30,7 @@ resource "google_monitoring_alert_policy" "high_backend_latency" {
   conditions {
     display_name = "Backend Latency p95 > ${var.latency_threshold_ms}ms"
     condition_threshold {
-      filter          = "resource.type = \"http_load_balancer\" AND metric.type = \"loadbalancing.googleapis.com/https/backend_latencies\""
+    filter          = "metric.type = \"loadbalancing.googleapis.com/https/backend_latencies\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = var.latency_threshold_ms
@@ -58,7 +58,7 @@ resource "google_monitoring_alert_policy" "high_backend_latency" {
 
 # Alert Policy 2: High 5xx Error Spike at Perimeter
 resource "google_monitoring_alert_policy" "high_5xx_error_rate" {
-  count        = var.enable_alerting ? 1 : 0
+  count        = var.enable_alerting && var.create_alerts_when_metrics_ready ? 1 : 0
   project      = var.compute_project_id
   display_name = "Apigee - High 5xx Error Rate"
   combiner     = "OR"
@@ -66,7 +66,7 @@ resource "google_monitoring_alert_policy" "high_5xx_error_rate" {
   conditions {
     display_name = "HTTP 5xx Error Spike (>10 req/min)"
     condition_threshold {
-      filter          = "resource.type = \"http_load_balancer\" AND metric.type = \"loadbalancing.googleapis.com/https/request_count\" AND metric.labels.response_code_class = \"500\""
+      filter          = "metric.type = \"loadbalancing.googleapis.com/https/request_count\" AND metric.labels.response_code_class = \"500\""
       duration        = "180s"
       comparison      = "COMPARISON_GT"
       threshold_value = 10
@@ -94,7 +94,7 @@ resource "google_monitoring_alert_policy" "high_5xx_error_rate" {
 
 # Alert Policy 3: Cloud Run Container Memory Saturation
 resource "google_monitoring_alert_policy" "cloud_run_memory_high" {
-  count        = var.enable_alerting ? 1 : 0
+  count        = var.enable_alerting && var.create_alerts_when_metrics_ready ? 1 : 0
   project      = var.compute_project_id
   display_name = "Cloud Run - High Container Memory (>85%)"
   combiner     = "OR"
@@ -130,7 +130,7 @@ resource "google_monitoring_alert_policy" "cloud_run_memory_high" {
 
 # Alert Policy 4: Hybrid Connectivity - Cloud VPN Tunnel Down
 resource "google_monitoring_alert_policy" "vpn_tunnel_down" {
-  count        = var.enable_alerting ? 1 : 0
+  count        = var.enable_alerting && var.create_alerts_when_metrics_ready ? 1 : 0
   project      = var.compute_project_id
   display_name = "Hybrid Connectivity - Cloud VPN Tunnel Down"
   combiner     = "OR"

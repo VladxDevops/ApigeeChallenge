@@ -27,6 +27,12 @@ variable "enable_alerting" {
   default     = true
 }
 
+variable "create_alerts_when_metrics_ready" {
+  description = "Gate creation of AlertPolicy resources until metrics/descriptors are available."
+  type        = bool
+  default     = false
+}
+
 variable "notification_email" {
   description = "Email address for alert policy notification channel. If empty, notification channel is skipped."
   type        = string
