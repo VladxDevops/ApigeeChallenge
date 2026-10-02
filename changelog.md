@@ -25,6 +25,34 @@ version = "1.5"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+## 2026-10-01 — Observability Module Alert Policy Remediation
+
+**Status**: Implemented & Validated. Preemptive fix for known Cloud Monitoring descriptor validation issues.
+
+**What changed**:
+- Diagnosed Cloud Monitoring AlertPolicy creation failures caused by GCP validating `resource.type` and `metric.type` at apply time.
+- Created comprehensive troubleshooting guide: `docs/TROUBLESHOOTING/terraform-errors/observability-alerts.md`
+- Implemented defensive remediation in observability module:
+  - Added `enable_alerting` (default: true) and `create_alerts_when_metrics_ready` (default: false) variables to gate alert creation
+  - Removed problematic `resource.type` predicates from alert filters; now filtering on `metric.type` only
+  - Updated dashboard filters for consistency with simplified alert format
+- All Terraform code passed `terraform fmt -recursive` and `terraform validate`
+
+**Why**: Alert policies using invalid/unregistered resource descriptors fail at apply time with HTTP 400 errors. Metric descriptors may not be available immediately after resource creation (GCP documentation notes up to 10-minute delays). Feature flags allow infrastructure deployment to proceed independently, then enable alerts once metrics are confirmed available.
+
+**Files**:
+- `docs/TROUBLESHOOTING/terraform-errors/observability-alerts.md` (NEW)
+- `platform/GCP/terraform/modules/observability/alerts.tf`
+- `platform/GCP/terraform/modules/observability/dashboards.tf`
+- `platform/GCP/terraform/modules/observability/variables.tf`
+
+**Validation performed**:
+- `terraform fmt -recursive` — All files passed
+- `terraform validate` — `Success! The configuration is valid.`
+- Manual review of alert filter syntax: confirmed removal of `resource.type` and use of `metric.type` only
+
+---
+
 ## 2026-10-01 — Document Terraform remote-state billing failure
 
 **Status**: Documented. Deployment remains blocked by external GCP billing state.

@@ -445,3 +445,47 @@ terraform apply observability.tfplan
 - Confirmed the zip command uses the required `apiproxy/` archive root, matching repo rules.
 
 ---
+
+## Session: Observability Module Alert Policy Remediation
+**Date**: 2026-10-01  
+**Agent**: GitHub Copilot  
+**Objective**: Identify and fix Terraform apply failures in the observability module related to Cloud Monitoring alert policies.
+
+### Summary
+1. Diagnosed Cloud Monitoring AlertPolicy creation failures caused by invalid metric/resource descriptor combinations.
+2. Root cause: GCP API validates `resource.type` and `metric.type` at apply time; some descriptors used in the module are not recognized in the target project or metrics have not yet been registered.
+3. Created comprehensive troubleshooting documentation explaining the issue, root cause, and recommended fixes.
+4. Implemented defensive remediation by:
+   - Adding `enable_alerting` variable (default: true) to gate alert policy creation
+   - Adding `create_alerts_when_metrics_ready` variable (default: false) to allow phased rollout
+   - Removing problematic `resource.type` predicates from alert filters; now using `metric.type` only
+   - Updated dashboard filters to match corrected alert format
+5. Verified static formatting and validation pass with updated code.
+
+### Key Findings
+1. **Metric Descriptor Validation**: Cloud Monitoring validates descriptors at `terraform apply` time, not at plan time. Alert policies using unrecognized resource types fail with HTTP 400 `The resource name does not represent a known descriptor`.
+2. **VPN Metrics**: VPN tunnel metrics may not be available immediately after resource creation; the module previously referenced `vpn.googleapis.com/network/tunnel_established` which returns 404 if the metric descriptor is not yet registered.
+3. **Defensive Gating**: Introduced feature flags to allow infrastructure and resource creation to proceed independently of alert availability, then enable alerts once metrics are confirmed ready.
+
+### Files Changed
+- ✓ Created: `docs/TROUBLESHOOTING/terraform-errors/observability-alerts.md` (60 lines, diagnostic and remediation guide)
+- ✓ Updated: `platform/GCP/terraform/modules/observability/alerts.tf` (removed resource.type, added conditional logic)
+- ✓ Updated: `platform/GCP/terraform/modules/observability/dashboards.tf` (filter consistency)
+- ✓ Updated: `platform/GCP/terraform/modules/observability/variables.tf` (added alerting feature flags)
+
+### Validation Performed
+1. `terraform fmt -recursive` passed
+2. `terraform validate` returned `Success! The configuration is valid.`
+3. Module structure verified: alerts and dashboards use defensive gating variables
+4. Troubleshooting documentation provides clear verification commands for metric availability
+
+### Decisions Influenced
+- Decision 8 (Observability strategy): Refined to include phased rollout of alert policies to account for metric descriptor registration delay
+- Infrastructure deployment sequence: Observability module can now be deployed early; alerts gracefully defer until metrics are confirmed available
+
+### Outstanding Questions / Next Steps
+1. **Metric Registration Timing**: Confirm how long metrics take to register after resource creation (documentation suggests up to 10 minutes)
+2. **Production Verification**: Once live GCP billing is restored, run `terraform apply -target=module.observability` to verify all alert policies create successfully
+3. **Alert Refinement**: After metrics are confirmed available, update `create_alerts_when_metrics_ready` to true and re-apply for full observability coverage
+
+---
