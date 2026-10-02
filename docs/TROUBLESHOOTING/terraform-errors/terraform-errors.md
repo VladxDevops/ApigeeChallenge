@@ -133,6 +133,74 @@ terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.infrastr
 
 Only apply after reviewing the plan and confirming the remaining actions are intentional.
 
+## Terraform apply error: Invalid index on observability alert outputs
+
+### Symptom
+
+Running the observability module failed with:
+
+```bash
+terraform apply -var-file="./environments/DEV/dev.tfvars" -target=module.observability
+```
+
+Terraform returned:
+
+```text
+Error: Invalid index
+│ 
+│   on modules/observability/outputs.tf line 8, in output "alert_policy_high_latency_id":
+│    8:   value       = var.enable_alerting ? google_monitoring_alert_policy.high_backend_latency[0].id : null
+│     ├────────────────
+│     │ google_monitoring_alert_policy.high_backend_latency is empty tuple
+│ 
+│ The given key does not identify an element in this collection value: the collection has no elements.
+```
+
+### Root cause
+
+The alert resources in `platform/GCP/terraform/modules/observability/alerts.tf` are created with `count`:
+
+```hcl
+count = var.enable_alerting && var.create_alerts_when_metrics_ready ? 1 : 0
+```
+
+When `create_alerts_when_metrics_ready` is `false`, the resource list is empty. The module outputs still tried to read `[0]`, which causes Terraform to fail with `Invalid index`.
+
+### Fix
+
+Guard each access with a length check before indexing:
+
+```hcl
+value = var.enable_alerting && length(google_monitoring_alert_policy.high_backend_latency) > 0 ? google_monitoring_alert_policy.high_backend_latency[0].id : null
+```
+
+The same pattern should be used for each alert output and the notification channel output.
+
+### Corrected files
+
+- `platform/GCP/terraform/modules/observability/outputs.tf`
+
+### Validation
+
+The fix was validated with:
+
+```bash
+cd /home/pochitawork/InterviewCloudProjects/ApigeeChallenge/platform/GCP/terraform
+terraform validate
+```
+
+Expected result:
+
+```text
+Success! The configuration is valid.
+```
+
+### Operational guidance
+
+If alert creation is intentionally gated until metrics are available, keep the `create_alerts_when_metrics_ready` flag set to `false` and ensure outputs never index into empty resource tuples. This prevents apply-time failures while still allowing observability resources to be created later once the metrics are confirmed ready.
+
+---
+
 ## Related references
 
 - `platform/GCP/terraform/modules/infrastructure/cloudbuild.tf`

@@ -25,6 +25,7 @@ version = "1.5"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+
 ## 2026-10-01 — Observability Module Alert Policy Remediation
 
 **Status**: Implemented & Validated. Preemptive fix for known Cloud Monitoring descriptor validation issues.
@@ -420,5 +421,24 @@ version = "1.5"
 **Validation performed**:
 - Reviewed the bundle contents and confirmed `hello-world-proxy` is the canonical smoke-test bundle.
 - Confirmed the zip command matches the repo’s required `apiproxy/` archive-root convention.
+
+---
+
+## 2026-10-02 — Guard empty alert tuple indexing in observability outputs
+
+**Status**: Fixed & Validated.
+
+**What changed**:
+- Fixed `platform/GCP/terraform/modules/observability/outputs.tf` so outputs only index alert resources when the resource list is non-empty.
+- Added `length(...) > 0` guards around `google_monitoring_alert_policy.*` and `google_monitoring_notification_channel.email` outputs.
+- Re-ran Terraform validation to confirm the configuration is still valid after the change.
+
+**Why**: The observability alert resources are created with `count`, so when `create_alerts_when_metrics_ready` is false, Terraform builds empty tuples. The unguarded `[0]` access caused the `Invalid index` error during `terraform apply`.
+
+**Files**:
+- `platform/GCP/terraform/modules/observability/outputs.tf`
+
+**Validation performed**:
+- `terraform validate` — `Success! The configuration is valid.`
 
 ---

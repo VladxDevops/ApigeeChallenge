@@ -489,3 +489,26 @@ terraform apply observability.tfplan
 3. **Alert Refinement**: After metrics are confirmed available, update `create_alerts_when_metrics_ready` to true and re-apply for full observability coverage
 
 ---
+
+## Session: Fix observability outputs when alert resources are disabled
+**Date**: 2026-10-02  
+**Agent**: GitHub Copilot  
+**Objective**: Resolve `Invalid index` in `module.observability` caused by empty `google_monitoring_alert_policy` tuples when alert creation is disabled.
+
+### Summary
+Diagnosed the terraform failure in `platform/GCP/terraform/modules/observability/outputs.tf`. The alert resources are declared with `count`, and when `create_alerts_when_metrics_ready` is false they produce empty collections. Outputs were still evaluating `resource[0].id`, which caused Terraform to raise `Invalid index` during apply.
+
+### Key Findings
+1. **Root cause**: `count = var.enable_alerting && var.create_alerts_when_metrics_ready ? 1 : 0` produces an empty tuple when alerts are intentionally gated off.
+2. **Fix**: Guard each output with `length(...) > 0` before indexing the resource list.
+3. **Outcome**: `terraform validate` succeeded after the change.
+
+### Files Changed
+- ✓ Updated: `platform/GCP/terraform/modules/observability/outputs.tf`
+- ✓ Updated: `changelog.md`
+- ✓ Updated: `transcripts.md`
+
+### Validation Performed
+- `terraform validate` returned `Success! The configuration is valid.`
+
+---

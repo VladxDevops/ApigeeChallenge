@@ -47,6 +47,120 @@ Use exactly one active bundle per proxy name. In this repo, the canonical smoke-
 
 The `hello-cloudrun` directory is a separate experimental or archived bundle and should not be treated as the active repo source of truth unless the team intentionally decides to keep both bundles as supported proxies.
 
+Before creating the zip, do all of the following in order:
+
+1. Confirm the correct bundle is selected.
+   - Verify you are working in the intended proxy folder: `APPS/APIgee/proxies/hello-world-proxy/apiproxy`.
+   - Make sure the proxy folder name matches the bundle name and the manifest name used in the XML.
+   - Do not package an alternate or stale bundle by mistake.
+
+2. Validate the XML.
+   - Check that the XML files are well-formed and complete.
+   - Confirm the `ProxyEndpoint` and `TargetEndpoint` definitions are present and valid.
+   - Run a syntax check, for example:
+
+   ```bash
+   cd /home/pochitawork/InterviewCloudProjects/ApigeeChallenge/APPS/APIgee/proxies/hello-world-proxy
+   xmllint --noout apiproxy/hello-world-proxy.xml apiproxy/proxies/default.xml apiproxy/targets/default.xml
+   ```
+
+3. Verify the routing contract in a concrete, step-by-step way.
+   - Open the bundle files and read the exact values you are about to deploy:
+
+   ```bash
+   cd /home/pochitawork/InterviewCloudProjects/ApigeeChallenge/APPS/APIgee/proxies/hello-world-proxy
+   sed -n '1,220p' apiproxy/proxies/default.xml
+   sed -n '1,220p' apiproxy/targets/default.xml
+   ```
+
+   - Find the `BasePath` in the `ProxyEndpoint` config. This is the URL path segment that comes after the hostname. Example:
+
+   ```xml
+   <HTTPProxyConnection>
+     <BasePath>/hello</BasePath>
+   </HTTPProxyConnection>
+   ```
+
+   This means the public route is expected to look like:
+
+   ```text
+   https://<Apigee-hostname>/hello
+   ```
+
+   - Compare that against the repo’s expected architecture and hostname. In this project, you should read the relevant design docs before deciding the value is correct:
+
+   ```text
+   docs/architecture/traffic-flows.md
+   docs/networking/network-architecture.md
+   ```
+
+   - Ask: “If a client calls the API through Apigee, what path should it hit?” If the answer is `/hello`, then the `BasePath` must match that exactly. If the app is supposed to be under `/api/v1`, it must be `/api/v1` — not `/hello`, not `/`, and not a random path.
+   - If the repo or environment design says the external host is the Apigee envgroup hostname, then `BasePath` is not the full URL; it is only the path after the hostname.
+   - Check that the `BasePath` is not a placeholder like `/REPLACE_ME`, `/test`, or a leftover value from another environment.
+
+   - Next, inspect the target URL in the `TargetEndpoint`. Example:
+
+   ```xml
+   <HTTPTargetConnection>
+     <URL>http://internal-backend:8080</URL>
+   </HTTPTargetConnection>
+   ```
+
+   - This is the service the proxy calls after it accepts the request.
+   - Confirm the target is an internal service, PSC address, ILB hostname, or repo-approved private endpoint — not a public internet hostname and not a hardcoded test value.
+   - Look for obvious placeholders or stale values, such as:
+     - `localhost`
+     - `0.0.0.0`
+     - `example.com`
+     - `REPLACE_ME`
+     - an old backend hostname from a different environment
+   - If the target is supposed to be private, verify the hostname resolves only through the project’s private network path and not through public DNS.
+
+   - Finally, ask whether the proxy flow matches the repo design:
+     - Clients call Apigee externally.
+     - Apigee routes based on `BasePath`.
+     - The proxy calls a private backend over the approved internal path.
+     - No direct public access to the backend is introduced.
+     - No alternate, stale, or duplicate route is being created.
+
+   - If any of those checks fail, the bundle is not ready for packaging.
+
+4. Review the backend and security implications with a real traffic-flow mindset.
+   - The main question is: “Does this proxy send requests to the right backend, and only the right backend?”
+   - Read the repo flow docs and map the path: `Client -> Apigee -> proxy -> backend -> response`.
+   - For this project, the intended pattern is usually:
+
+   ```text
+   Internet client
+     ↓
+   Apigee external entry / envgroup
+     ↓
+   Apigee proxy (`BasePath` route)
+     ↓
+   Private target endpoint (internal service / PSC / ILB path)
+     ↓
+   Backend app or internal service
+     ↓
+   Response returns along the same approved path
+   ```
+
+   - Confirm the proxy reaches the intended backend only.
+     - Check the target URL itself, not just the path.
+     - Confirm the backend hostname matches the actual internal service the architecture expects.
+     - Confirm the proxy is not accidentally targeting a different service, test service, or public endpoint.
+   - Confirm the target is the correct internal service or PSC/ILB path for this environment.
+     - Match the hostname to the correct networking design in the repo.
+     - Verify the backend belongs to this environment and not another project or old deployment.
+   - Verify the proxy does not create a bypass, duplicate route, or conflicting deployment.
+     - Check that there is only one intended path to the target.
+     - Make sure the proxy does not bypass the approved WAF, Apigee, or private connectivity pattern.
+     - Make sure you are not accidentally packaging a bundle from a different prototype or alternate directory such as `hello-cloudrun` when the active repo bundle should be `hello-world-proxy`.
+   - If the change affects network exposure, security posture, or API behavior, record it in `changelog.md`.
+
+5. Mark the bundle as ready for packaging.
+   - Only after the above checks are complete and reviewed should the zip be created.
+   - This is the release gate: the bundle is not ready until it has been validated and approved.
+
 When to generate the zip:
 - after the XML is valid and the manifest name matches the folder name
 - after `BasePath`, target URL, and hostname/port checks pass
@@ -67,3 +181,33 @@ zip -r ../hello-world-proxy.zip apiproxy
 ```
 
 This creates a zip whose root is `apiproxy/`, which is the format Apigee expects for import.
+
+After the zip is created, do the following explicitly:
+
+1. Verify the archive structure before upload.
+   - Confirm the zip contains an `apiproxy/` directory at the root, not a flattened set of XML files.
+   - Confirm the bundle is the expected one for this target org/environment.
+
+2. Upload the bundle to the correct Apigee environment.
+   - Use the intended Apigee org and environment for the deployment.
+   - Do not upload a zip to the wrong project, environment, or shared org by accident.
+
+3. Import the proxy bundle into Apigee.
+   - Use the standard Apigee management API or the repo’s supported deployment workflow.
+   - Treat the zip as the deployment artifact, not as source code.
+
+4. Deploy or re-deploy the imported revision.
+   - Deploy only the revision that matches the validated bundle you just packaged.
+   - Avoid deploying an older or alternate zip when a newer bundle is ready.
+
+5. Validate the deployed proxy.
+   - Check that the environment route is active.
+   - Confirm the target backend is reachable through the configured path.
+   - Test the API endpoint with the expected request/response behavior.
+   - Verify logs, metrics, and failures are clean and aligned with the expected traffic flow.
+
+6. Record the outcome.
+   - If deployment succeeds, note the revision and environment in your operational record.
+   - If deployment fails, capture the issue and fix the XML source before re-creating the zip and retrying.
+
+The zip is a packaging artifact for deployment. The XML under `apiproxy/` remains the authoritative source of truth, and any change should be reviewed, validated, and then re-zipped immediately before upload.
