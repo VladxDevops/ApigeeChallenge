@@ -4,6 +4,7 @@ module "infrastructure" {
   compute_project_id                 = var.compute_project_id
   compute_project_number             = var.compute_project_number
   compute_region                     = var.compute_region
+  api_spoke_network_id = var.api_spoke_network_id
   terraform_remote_state_bucket_name = var.terraform_remote_state_bucket_name
   terraform_deployer_service_account = var.terraform_deployer_service_account
   api_vpc_cidr                       = var.api_vpc_cidr

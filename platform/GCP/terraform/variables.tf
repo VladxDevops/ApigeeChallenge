@@ -9,11 +9,16 @@ variable "compute_project_number" {
 }
 
 
-#Region and zone for the GCP resources: 
+# Networking, Region and zone for the GCP resources: 
 variable "compute_region" {
   description = "Compute region for the GCP resources."
   type        = string
 
+}
+
+variable "api_spoke_network_id" {
+  description = "ID of the API spoke VPC network."
+  type        = string  
 }
 
 #Terraform remote state bucket name:
