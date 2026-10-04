@@ -25,7 +25,7 @@ output "endpoint_attachment_id" {
   value       = google_apigee_endpoint_attachment.cloud_run_backend.id
 }
 
-output "endpoint_attachment_host" {
+output "endpoint_attachment_host" { #Add this output to: 
   description = "Host IP/address of the southbound Apigee endpoint attachment."
   value       = google_apigee_endpoint_attachment.cloud_run_backend.host
 }

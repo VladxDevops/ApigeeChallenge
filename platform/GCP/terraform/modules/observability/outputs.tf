@@ -42,3 +42,4 @@ output "peak_hour_high_latency_metric_name" {
   description = "The metric descriptor name of the peak hour high latency log-based metric."
   value       = google_logging_metric.peak_hour_high_latency_requests.name
 }
+

@@ -44,3 +44,9 @@ output "cloud_run_service_account_email" {
   description = "Email of the dedicated Cloud Run workload identity."
   value       = module.security.cloud_run_service_account_email
 }
+
+#Southbound Apigee endpoint attachment outputs: 
+output "apigee_endpoint_attachment_host" { 
+  description = "reaplace placeholder: <HTTPTargetConnection> <URL>http://REPLACE_WITH_ENDPOINT_ATTACHMENT_HOST/</URL> <Properties> with this output"
+    value = module.apigee.endpoint_attachment_host 
+}

@@ -96,6 +96,8 @@ Before creating the zip, do all of the following in order:
 
    - Ask: “If a client calls the API through Apigee, what path should it hit?” If the answer is `/hello`, then the `BasePath` must match that exactly. If the app is supposed to be under `/api/v1`, it must be `/api/v1` — not `/hello`, not `/`, and not a random path.
    - If the repo or environment design says the external host is the Apigee envgroup hostname, then `BasePath` is not the full URL; it is only the path after the hostname.
+   - The hostname itself comes from the Terraform variable `apigee_envgroup_hostnames` in `platform/GCP/terraform/environments/DEV/dev.tfvars`.
+   - This value is intentionally a placeholder until a real DNS name and certificate are assigned. In the current dev configuration it is set to a sample hostname such as `api.example.com` because no custom domain is available yet.
    - Check that the `BasePath` is not a placeholder like `/REPLACE_ME`, `/test`, or a leftover value from another environment.
 
    - Next, inspect the target URL in the `TargetEndpoint`. Example:
@@ -189,8 +191,59 @@ After the zip is created, do the following explicitly:
    - Confirm the bundle is the expected one for this target org/environment.
 
 2. Upload the bundle to the correct Apigee environment.
-   - Use the intended Apigee org and environment for the deployment.
-   - Do not upload a zip to the wrong project, environment, or shared org by accident.
+   - The upload step is intentionally separate from the XML source. The zip is a deployment artifact, not the source of truth.
+   - Before uploading, confirm the target is the intended Apigee org and environment created by the Terraform setup for this repo.
+   - In this project, that means the upload target must match the environment backing the `apigee_envgroup_hostnames` value in `platform/GCP/terraform/environments/DEV/dev.tfvars`, not just the proxy folder name or a guessed org.
+   - Use the repo-supported management API or CLI path for your deployment, for example:
+
+   ```bash
+   cd /home/pochitawork/InterviewCloudProjects/ApigeeChallenge/APPS/APIgee/proxies
+   zip -r hello-world-proxy.zip hello-world-proxy/apiproxy
+   ```
+
+
+Upload zip: 
+
+Set variables first: 
+
+```bash
+export ORG=APIgeeOrganizationName
+export PROXY_NAME=hello-world-proxy
+export ENV=dev
+
+Raplace ORG value with the apigee organization name/id. 
+
+
+This one works: 
+
+curl -X POST \
+  "https://apigee.googleapis.com/v1/organizations/$ORG/apis?action=import&name=$PROXY_NAME" \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -F "file=@/home/pochitawork/InterviewCloudProjects/ApigeeChallenge/APPS/APIgee/proxies/hello-world-proxy.zip"
+```
+
+- Deploy that revision to an environment: Tested, commands does work. 
+
+```bash
+gcloud apigee apis deploy 1   --api=hello-world-proxy   --environment=dev   --organization=rocketcodeapigee   --override
+apiProxy: hello-world-proxy
+deployStartTime: '1791078571460'
+environment: dev
+proxyDeploymentType: STANDARD
+revision: '1'
+```
+
+
+- Verify using apigee list: 
+
+```bash
+gcloud apigee apis list
+   ```
+
+   - Verify the upload command is pointed at the correct `$ORG` and `$ENV` values before sending it.
+   - Do not upload the bundle to a different org/environment just because the name looks similar. The route contract and hostnames are environment-specific.
+   - After import, confirm the returned revision is the one you intended to deploy and that the imported proxy name matches the source bundle (`hello-world-proxy`).
+   - If the import succeeds but the revision does not match the intended bundle, treat it as a failed deployment and correct the source before re-zipping and re-importing.
 
 3. Import the proxy bundle into Apigee.
    - Use the standard Apigee management API or the repo’s supported deployment workflow.
@@ -211,3 +264,52 @@ After the zip is created, do the following explicitly:
    - If deployment fails, capture the issue and fix the XML source before re-creating the zip and retrying.
 
 The zip is a packaging artifact for deployment. The XML under `apiproxy/` remains the authoritative source of truth, and any change should be reviewed, validated, and then re-zipped immediately before upload.
+
+### Internal validation when no real domain exists
+
+This project is a demo architecture, not a production hostname deployment. That means the value in `apigee_envgroup_hostnames` is expected to be a placeholder until a real DNS name and certificate are assigned. The proxy logic can still be validated internally without a public domain by overriding the `Host` header and/or mapping the placeholder hostname locally.
+
+Use the following pattern:
+
+1. Confirm the route contract.
+   - The envgroup hostname is the placeholder value in `platform/GCP/terraform/environments/DEV/dev.tfvars`.
+   - The API path is the `BasePath` in `apiproxy/proxies/default.xml`.
+   - For this demo, that means the route is expected to look like:
+
+   ```text
+   https://api.example.com/hello
+   ```
+
+   even though `api.example.com` is not a real public domain.
+
+2. Override the Host header during local validation.
+   - If you can reach the external Apigee endpoint from your terminal, send the request with the placeholder host header:
+
+   ```bash
+   curl -k -H 'Host: api.example.com' \
+     "https://<apigee-external-endpoint>/hello"
+   ```
+
+   This works because Apigee matches the request hostname (through the `Host` header) to the envgroup hostname, even when the DNS name is only a local placeholder.
+
+3. Optionally map the placeholder host locally.
+   - On a local machine or test host, add a DNS override so `api.example.com` resolves to the external Apigee endpoint IP or hostname:
+
+   ```bash
+   echo "<apigee-external-ip> api.example.com" | sudo tee -a /etc/hosts
+   ```
+
+   Then test with:
+
+   ```bash
+   curl -k "https://api.example.com/hello"
+   ```
+
+   If a direct DNS entry is not available, the `curl -H 'Host: api.example.com'` method is the most reliable demo option.
+
+4. Keep the route contract and architecture honest.
+   - The public host is still placeholder-only until a real custom domain is assigned.
+   - The internal/private target remains the PSC endpoint host in the `TargetEndpoint`.
+   - The design remains valid for demo and validation because the routing contract is still correct even without the domain being externally routable.
+
+This is the intended internal demo method: validate the proxy path and backend flow without requiring a production domain, while clearly documenting that the hostname is a placeholder until DNS and TLS are real.
