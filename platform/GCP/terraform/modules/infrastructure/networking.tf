@@ -299,7 +299,7 @@ resource "google_compute_forwarding_rule" "apigee_northbound" {
   load_balancing_scheme = "EXTERNAL_MANAGED"
   target                = google_compute_region_target_https_proxy.apigee_northbound[0].id
   network_tier          = "STANDARD"
-  network = var.api_spoke_network_id
+  network               = var.api_spoke_network_id
 
 
   depends_on = [google_compute_subnetwork.regional_proxy_only]

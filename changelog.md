@@ -10,8 +10,8 @@ related = [
     "AGENTS.md",
     "AI_MANIFEST.toml"
 ]
-updated_by = "Antigravity AI"
-version = "1.5"
+updated_by = "Grok"
+version = "1.6"
 +++
 
 > **Parent**: [`README.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/README.md)
@@ -25,6 +25,53 @@ version = "1.5"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+## 2026-10-04 — Hello-backend container path review
+
+**Status**: Documented. Terraform, the container, and `cloudbuild.yaml` were not changed.
+
+**What changed**:
+- Reviewed `APPS/hello-backend` (`Dockerfile`, `src/index.js`, `package.json`, `cloudbuild.yaml`) against the Terraform that builds with Cloud Build, stores the image in Artifact Registry, and deploys Cloud Run.
+- Recorded six blocking gaps: `module.infrastructure` does not receive `cloud_run_image` from `dev.tfvars` (module default remains `gcr.io/cloudrun/hello`); the Cloud Build worker has no `roles/artifactregistry.writer` or `roles/logging.logWriter`; the Cloud Run runtime identity has no `roles/artifactregistry.reader`; the local build does not wait on the Cloud Build and Artifact Registry APIs; a static `:latest` tag does not roll a new revision; the internal load balancer has no invoker beyond the Apigee service account.
+- Recorded non-blocking notes: unused `artifact_registry_cleanup_enabled`, and VPC connector CIDR `10.80.0.128/28` versus the addressing-plan reservation `10.80.0.32/28`.
+
+**Why**: The application image can be built, and the registry and Cloud Run service exist, while the revision that serves traffic can still be the public sample and the push, pull, and invoke identities are undeclared.
+
+**Files**:
+- `internalDocumentation/Planning/plan.md` (UPDATED)
+- `internalDocumentation/Planning/checklist.md` (UPDATED)
+- `internalDocumentation/Planning/tasks.md` (UPDATED)
+- `changelog.md` (UPDATED)
+- `transcripts.md` (UPDATED)
+
+**Validation performed**:
+- Compared `cloudbuild.yaml` substitutions with `dev.tfvars` and the infrastructure module inputs in `infrastructure.tf`.
+- Confirmed `terraform_data.build_hello_backend` depends only on the Artifact Registry repository, and that deployer IAM in `modules/iam` is not bound to the Cloud Build execution identity.
+
+---
+
+## 2026-10-04 — External Endpoint Validation and Southbound PSC Fix
+
+**Status**: Documented and validated. Proxy target URL corrected; proxy bundle rebuild and re-import are the remaining validation steps.
+
+**What changed**:
+- Confirmed the public northbound path is operational by reaching the external ALB with a `curl --resolve` override against the live IP.
+- Diagnosed the HTTP 503 `TARGET_CONNECT_TIMEOUT` fault as a southbound PSC routing problem originating from the Apigee proxy target.
+- Updated `APPS/APIgee/proxies/hello-world-proxy/apiproxy/targets/default.xml` to use the Cloud Run service endpoint instead of a hardcoded non-routable `10.x.x.x` private IP.
+- Recorded the root cause, fix, and next validation steps in the repository history for traceability.
+
+**Why**: The northbound edge was reachable, but the proxy target URL pointed at a private address that was not valid for the PSC path. Apigee therefore timed out while trying to establish the southbound connection to the backend.
+
+**Files**:
+- `APPS/APIgee/proxies/hello-world-proxy/apiproxy/targets/default.xml` (MODIFIED)
+- `changelog.md` (UPDATED)
+- `transcripts.md` (UPDATED)
+
+**Validation performed**:
+- External `curl --resolve` validation succeeded against the public ALB IP.
+- Apigee fault response analysis confirmed `TARGET_CONNECT_TIMEOUT` on the southbound proxy target.
+- Root-cause review confirmed the old target was an unreachable private IP rather than the Cloud Run service endpoint.
+
+---
 
 ## 2026-10-01 — Observability Module Alert Policy Remediation
 

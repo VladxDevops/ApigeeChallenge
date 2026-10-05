@@ -615,3 +615,41 @@ Before implementation:
 Do not implement based on guesses when official documentation can resolve the question.
 
 The final result must be understandable by an engineer during an oral defense without AI assistance.
+
+---
+
+## Agent Working Notes
+
+### gcloud CLI Region Flag Convention
+
+**IMPORTANT**: Many `gcloud compute` and `gcloud run` commands use `--regions` (plural) instead of `--region` (singular) when querying regional resources.
+
+**Incorrect (will fail with Exit Code 2):**
+```bash
+gcloud compute forwarding-rules describe apigee-northbound-fwd-rule \
+  --project=rocketcodeapigee \
+  --region=us-south1 \
+  --format='value(IP_ADDRESS)'
+
+gcloud run services list --project=rocketcodeapigee --region=us-south1
+gcloud compute service-attachments list --project=rocketcodeapigee --region=us-south1
+```
+
+**Correct (use `--regions` with 's'):**
+```bash
+gcloud compute forwarding-rules describe apigee-northbound-fwd-rule \
+  --project=rocketcodeapigee \
+  --regions=us-south1 \
+  --format='value(IP_ADDRESS)'
+
+gcloud run services list --project=rocketcodeapigee --regions=us-south1
+gcloud compute service-attachments list --project=rocketcodeapigee --regions=us-south1
+```
+
+**Applies to**:
+- `gcloud compute forwarding-rules`
+- `gcloud compute service-attachments`
+- `gcloud run services`
+- Other region-scoped GCP resource queries
+
+Always use `--regions` (plural) when querying region-specific GCP resources via gcloud CLI.

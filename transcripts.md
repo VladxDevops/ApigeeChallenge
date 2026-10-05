@@ -10,8 +10,8 @@ related = [
     "AGENTS.md",
     "AI_MANIFEST.toml"
 ]
-updated_by = "Antigravity AI"
-version = "1.3"
+updated_by = "Grok"
+version = "1.4"
 +++
 
 > **Parent**: [`README.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/README.md)
@@ -24,6 +24,80 @@ version = "1.3"
 - When to Retrieve: Starting a new session to understand context, auditing what was done, or writing a new session summary.
 - When NOT to Retrieve: When looking for current architecture state (use docs/architecture/), or for the changelog (use changelog.md).
 -->
+
+## Session: Hello-backend Terraform declaration review
+**Date**: 2026-10-04  
+**Agent**: Grok  
+**Objective**: Find Terraform declarations missing for `APPS/hello-backend` to be built with Cloud Build, stored in Artifact Registry, and deployed to Cloud Run. Document the findings. Do not change the container or the Terraform.
+
+### Summary
+1. Read `changelog.md` and this transcript, then inspected `APPS/hello-backend` (`Dockerfile`, `package.json`, `src/index.js`, `cloudbuild.yaml`, `Agents.md`) and the infrastructure, IAM, and API-enablement modules.
+2. Confirmed the image build itself matches the app contract: multi-stage `node:20-slim`, UID `10001`, port `8080`, Cloud Build push of `rocketcode-demo-backend` to `rocketcode-demo-repo` in `us-south1`, logging `CLOUD_LOGGING_ONLY`, no Cloud Run deploy step.
+3. Confirmed the repository, the `gcloud builds submit` local-exec, the Cloud Run service, and the three APIs are already declared.
+4. Recorded the gaps in `internalDocumentation/Planning/plan.md`, `checklist.md`, and `tasks.md`. No Terraform was edited.
+
+### Key Findings
+- **Image wiring**: `dev.tfvars` names the Artifact Registry image. `module "infrastructure"` does not pass `cloud_run_image`, so the service keeps the module default `gcr.io/cloudrun/hello`.
+- **Build identity**: push and `CLOUD_LOGGING_ONLY` run as the Cloud Build execution identity (`564962846781@cloudbuild.gserviceaccount.com`, or the default compute service account). That identity has no `roles/artifactregistry.writer` or `roles/logging.logWriter`. Deployer roles do not cover it.
+- **Pull identity**: `cloud_run_service_account_email` is empty and is not passed into the module. `cloud-run-backend-sa` is not attached and has no `roles/artifactregistry.reader`.
+- **API order**: `terraform_data.build_hello_backend` depends only on the repository, not on `module.enable-gcp-services`.
+- **Revision roll**: the image argument is a static `:latest` string, so a later source change does not create a new revision.
+- **Invoker**: `cloud_run_invoker_members` is only the Apigee service account. The regional internal load balancer does not present that identity.
+
+### Files Changed/Reviewed
+- `APPS/hello-backend/Dockerfile`, `cloudbuild.yaml`, `src/index.js`, `package.json`, `Agents.md` (reviewed)
+- `platform/GCP/terraform/infrastructure.tf`, `environments/DEV/dev.tfvars` (reviewed)
+- `platform/GCP/terraform/modules/infrastructure/cloudbuild.tf`, `cloudrun.tf`, `artifact-registry.tf` (reviewed)
+- `platform/GCP/terraform/modules/iam/main.tf`, `modules/security/main.tf`, `modules/enable-gcp-services/main.tf` (reviewed)
+- `internalDocumentation/Planning/plan.md`, `checklist.md`, `tasks.md` (UPDATED)
+- `changelog.md`, `transcripts.md` (UPDATED)
+
+### Validation Performed
+- Static comparison of `cloudbuild.yaml` substitutions, `dev.tfvars`, and the `module "infrastructure"` argument list.
+- Confirmed there is no `google_cloudbuild_trigger` and no repository IAM member for the Cloud Build worker or the Cloud Run runtime service account.
+
+### Outstanding Questions
+- Whether this project’s Cloud Build execution identity is `564962846781@cloudbuild.gserviceaccount.com` or the Compute Engine default service account. The binding has to target whichever identity `gcloud builds submit` uses.
+- Whether the live revision is still `gcr.io/cloudrun/hello`. That was not read from Cloud Run in this session.
+
+---
+
+## Session: External Apigee Endpoint Testing & Southbound PSC Troubleshooting
+**Date**: 2026-10-04  
+**Agent**: GitHub Copilot  
+**Objective**: Validate end-to-end external API request flow through Apigee northbound PSC to Cloud Run backend; diagnose and fix connectivity issues.
+
+### Summary
+1. **Clarified external endpoint testing methodology**: Explained that `api.example.com` is a placeholder hostname and cannot be resolved via public DNS; demonstrated `curl --resolve` override pattern for local testing without real domain.
+2. **Located actual external Apigee endpoint**: Inspected Terraform and identified that northbound PSC ALB forwarding rule only exists when `apigee_northbound_service_attachment` is populated (confirmed in `dev.tfvars` with valid URI).
+3. **Discovered gcloud CLI flag convention**: Found that region-based queries use `--regions` (plural) not `--region`; documented in `Agents.md` for all future agents.
+4. **Executed external validation curl**: Successfully reached external ALB (34.0.132.236), established TLS connection with self-signed cert, sent request to Apigee.
+5. **Diagnosed southbound failure**: Apigee returned HTTP 503 with `TARGET_CONNECT_TIMEOUT` fault — root cause was hardcoded `10.x` IP in proxy's `TargetEndpoint` not reachable via PSC.
+6. **Fixed proxy configuration**: Updated `APPS/APIgee/proxies/hello-world-proxy/apiproxy/targets/default.xml` to use Cloud Run endpoint URL instead of hardcoded private IP.
+7. **Identified next step**: Proxy bundle re-creation and re-import required before re-validation.
+
+### Key Findings
+- **Placeholder hostname vs real endpoint**: `api.example.com` in Terraform is intentionally placeholder until real domain; external ALB IP (34.0.132.236) is the real public entry point.
+- **Northbound path working**: External ALB → northbound PSC NEG → Apigee confirmed operational.
+- **Southbound path broken**: Apigee → hardcoded `10.x` IP failed; requires proper Cloud Run endpoint reference.
+
+### Files Changed/Reviewed
+- `APPS/APIgee/proxies/hello-world-proxy/apiproxy/targets/default.xml` (MODIFIED)
+- `Agents.md` (DOCUMENT PENDING: gcloud CLI flag convention)
+- `platform/GCP/terraform/environments/DEV/dev.tfvars` (reviewed)
+- `platform/GCP/terraform/modules/infrastructure/networking.tf` (reviewed)
+
+### Validation Performed
+- External curl with Host header override and IP resolution: SUCCESS (TLS handshake, Apigee reached)
+- Apigee fault response parsing: SUCCESS (identified TARGET_CONNECT_TIMEOUT)
+- Root cause analysis: SUCCESS (hardcoded 10.x IP not reachable via PSC)
+- Proxy config update: COMPLETE (URL changed to Cloud Run endpoint)
+
+### Outstanding Questions
+- Cloud Run private endpoint exact format/port for southbound PSC (to be confirmed after re-import)
+- Whether proxy bundle zip needs recreation immediately or if inline edits persist in Apigee
+
+---
 
 ## Session: Planning & Task Execution, Module Contract & Addressing Alignment
 **Date**: 2026-09-30  
@@ -270,7 +344,7 @@ Designed and implemented a production-ready security module that packages Cloud 
 
 - Agent/tool: Antigravity (Gemini 3.8 Flash High)
 - Objective: Generate project-level Progressive Disclosure skill at `internalDocumentation/` based on `/home/pochitawork/AGENTS/SKILLS/progressive-disclosure/` template and project context.
-- Findings: Repository possesses 29 markdown files spanning architecture, networking, security, Cloud Run, and tasks. Generated 4-tier knowledge architecture, role-based ingestion matrix, drop-in header templates, `AI_MANIFEST.toml` control plane, and python validator.
+- Findings: Repository possesses 29 markdown files spanning architecture, networking, security, Cloud Run, and tasks. Generated 4-tier knowledge architecture, role-based ingestion matrix, drop-in header templates, `AI_MANIFEST.tomL` control plane, and python validator.
 - Files created: `internalDocumentation/skills/progressive-disclosure/SKILL.md`, `references/universal-hierarchy-apigee.md`, `references/context-ingestion-matrix.md`, `examples/document-header-templates.md`, `examples/AI_MANIFEST_APIGEE.toml`, `scripts/validate_metadata.py`, `internalDocumentation/README.md`, `internalDocumentation/SKILL.md` (symlink), `Agents/skills/Progressive-Disclosure` (symlink), `AI_MANIFEST.toml`.
 - Validation: Ran `validate_metadata.py` across entire repository; 0 broken links reported. Updated all canonical references and manifest entries to `Challenge/challenge.md`.
 - Outstanding: Refactor Tier 2 stub documents (`architecture-decisions.md`, `addressing-plan.md`, `assumptions-risks-tradeoffs.md`) in Phase 2.
@@ -510,5 +584,42 @@ Diagnosed the terraform failure in `platform/GCP/terraform/modules/observability
 
 ### Validation Performed
 - `terraform validate` returned `Success! The configuration is valid.`
+
+---
+
+## Session: External Apigee Validation and Southbound PSC Root Cause Fix
+**Date**: 2026-10-04  
+**Agent**: GitHub Copilot  
+**Objective**: Validate the public northbound path and resolve the southbound `TARGET_CONNECT_TIMEOUT` fault affecting the Cloud Run target.
+
+### Summary
+1. Confirmed the external ALB was reachable using a `curl --resolve` override against the real IP, proving the northbound edge was up.
+2. Diagnosed the 503 `TARGET_CONNECT_TIMEOUT` fault returned by Apigee as a backend connectivity issue in the proxy target configuration.
+3. Reviewed the target endpoint and identified a hardcoded private IP in `APPS/APIgee/proxies/hello-world-proxy/apiproxy/targets/default.xml` that could not work across the PSC path.
+4. Replaced the target URL with the Cloud Run service endpoint to align the proxy with the actual private backend route. Testing status: Pending. 
+5. Documented the findings and remaining validation step: rebuild the proxy bundle and re-import it before final end-to-end confirmation.
+
+### Key Findings
+- The public front door path was working and the ALB was reachable.
+- The failure was not at the northbound edge; it was inside Apigee when attempting to connect to the target backend.
+- The old target URL used a hardcoded `10.x` private address, which is not valid for the provider-managed runtime private path.
+- The correct backend target is the Cloud Run service endpoint, which matches the actual private integration path.
+
+### Files Changed/Reviewed
+- `APPS/APIgee/proxies/hello-world-proxy/apiproxy/targets/default.xml` (MODIFIED)
+- `changelog.md` (UPDATED)
+- `transcripts.md` (UPDATED)
+- `platform/GCP/terraform/environments/DEV/dev.tfvars` (reviewed)
+- `platform/GCP/terraform/modules/infrastructure/networking.tf` (reviewed)
+
+### Validation Performed
+- `curl --resolve` external request to the ALB IP: SUCCESS
+- Apigee fault parsing: SUCCESS (`TARGET_CONNECT_TIMEOUT` identified)
+- Proxy target remediation: COMPLETE
+- Remaining step: proxy bundle rebuild + re-import + re-validation
+
+### Outstanding Questions
+- Rebuild and re-import the proxy bundle into Apigee to confirm the new target URL is active.
+- Validate the final end-to-end request path after the updated bundle is active.
 
 ---

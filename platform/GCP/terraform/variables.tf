@@ -18,7 +18,7 @@ variable "compute_region" {
 
 variable "api_spoke_network_id" {
   description = "ID of the API spoke VPC network."
-  type        = string  
+  type        = string
 }
 
 #Terraform remote state bucket name:
@@ -219,4 +219,9 @@ variable "artifact_registry_cleanup_enabled" {
   description = "Enable automatic cleanup of unused images."
   type        = bool
   default     = false
+}
+
+variable "cloud_run_vpc_connector_cidr" {
+  description = "CIDR for the Cloud Run VPC connector inside the API spoke VPC. Must not overlap the existing subnets."
+  type        = string
 }

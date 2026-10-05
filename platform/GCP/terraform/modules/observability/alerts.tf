@@ -30,7 +30,7 @@ resource "google_monitoring_alert_policy" "high_backend_latency" {
   conditions {
     display_name = "Backend Latency p95 > ${var.latency_threshold_ms}ms"
     condition_threshold {
-    filter          = "metric.type = \"loadbalancing.googleapis.com/https/backend_latencies\""
+      filter          = "metric.type = \"loadbalancing.googleapis.com/https/backend_latencies\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = var.latency_threshold_ms
