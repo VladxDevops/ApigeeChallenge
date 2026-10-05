@@ -3,11 +3,13 @@
 # API management and private connectivity layers.
 
 resource "google_vpc_access_connector" "cloud_run_connector" {
-  name          = "api-cloudrun-vpc-connector"
+  name          = "api-cloudrun-connector"
   project       = var.compute_project_id
   region        = var.compute_region
   network       = google_compute_network.api_spoke.id
   ip_cidr_range = var.cloud_run_vpc_connector_cidr
+  min_instances = "2"
+  max_instances = "3"
 
   depends_on = [google_compute_subnetwork.api_private]
 }
