@@ -121,3 +121,16 @@ Enable and review:
 - Apigee analytics and API monitoring.
 - Cloud Run request logs.
 - VPN tunnel metrics and logs.
+
+## 9. Remote state bucket hardening
+
+The Terraform remote state bucket is protected with Google Cloud Storage uniform bucket-level access. This is enabled in `platform/GCP/terraform/backends.tf` via `uniform_bucket_level_access = true` and is consistent with the GCP guidance for simplifying IAM and preventing accidental object-level ACL drift.
+
+Why this matters:
+
+- Bucket-level IAM is the control plane for the state bucket; object ACLs are not used for access decisions.
+- This reduces privilege sprawl and makes the state bucket easier to audit and govern under least privilege.
+- It aligns with the project’s security posture for storing Terraform state, which can include sensitive infrastructure metadata and dependency information.
+- It complements other protections already in place: `public_access_prevention = "enforced"`, versioning enabled, and bucket-level access restricted to approved identities.
+
+This is a required baseline for the state bucket, not a convenience toggle.

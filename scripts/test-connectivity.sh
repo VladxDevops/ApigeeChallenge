@@ -12,7 +12,7 @@ echo " Apigee Challenge Connectivity Test Suite "
 echo " Mode: ${MODE}"
 echo "=========================================="
 
-if [ "${MODE}" = "live" ]; then
+if [[ "${MODE}" = "live" ]]; then
     echo "[TEST 1] Testing DNS Resolution for ${ENDPOINT_URL}..."
     HOST=$(echo "${ENDPOINT_URL}" | awk -F/ '{print $3}')
     dig +short "${HOST}" || echo "[WARN] DNS resolution failed or host not registered."

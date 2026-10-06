@@ -547,3 +547,29 @@ version = "1.6"
 - `terraform validate` — `Success! The configuration is valid.`
 
 ---
+
+## 2026-10-06 — Terraform remote state bucket hardening with uniform bucket-level access
+
+**Status**: Documented and aligned with GCP security guidance.
+
+**What changed**:
+- Enabled `uniform_bucket_level_access = true` for the remote Terraform state bucket in `platform/GCP/terraform/backends.tf`.
+- Documented the control in the repository security and deployment references so the reasoning is preserved for oral defense and future reviews.
+- Recorded the change as part of the remote-state governance baseline for the challenge environment.
+
+**Why**:
+- Google Cloud Storage uniform bucket-level access centralizes access control at the bucket level and avoids object-level ACL drift.
+- This is the correct default for a Terraform state bucket because it simplifies least-privilege access review and reduces misconfiguration risk.
+- It specifically supports the project requirement to store state in a protected, auditable, and reproducible remote backend.
+
+**Files**:
+- `platform/GCP/terraform/backends.tf`
+- `docs/security/security-model.md`
+- `docs/operations/deployment-and-validation.md`
+- `changelog.md`
+
+**Validation performed**:
+- Static review of the GCS bucket configuration and Google Cloud documentation for uniform bucket-level access.
+- Confirmed the setting is consistent with the repository’s remote-state and least-privilege security posture.
+
+---

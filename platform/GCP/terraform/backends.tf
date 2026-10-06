@@ -3,6 +3,7 @@
 resource "google_storage_bucket" "terraform_state_backend_rocket" {
   name                     = var.terraform_remote_state_bucket_name
   location                 = var.compute_region
+  uniform_bucket_level_access = true
   force_destroy            = false
   public_access_prevention = "enforced"
 

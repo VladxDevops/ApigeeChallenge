@@ -61,6 +61,8 @@ Do not run `terraform apply` against an unknown or shared environment without ex
 - Confirm Terraform state files are ignored and not part of the submission.
 - Confirm Apigee runtime is drawn outside the customer VPC in the final diagram.
 - Confirm the diagram shows trust boundaries and traffic direction.
+- Confirm the Terraform remote state bucket uses uniform bucket-level access (`uniform_bucket_level_access = true`) per the Google Cloud guidance, and that object ACLs are not relied on for access management.
+- Confirm the state bucket remains private and versioned, with `public_access_prevention = "enforced"` and no accidental public exposure.
 
 
 ## Rollback Strategy
