@@ -29,7 +29,7 @@ else
     grep -E "api_private_subnet_cidr|psc_nat_subnet_cidr|proxy_only_subnet_cidr" platform/GCP/terraform/environments/DEV/dev.tfvars
 
     echo "[STATIC CHECK 2] Verifying Cloud Run Internal Ingress Setting..."
-    grep "INGRESS_TRAFFIC_INTERNAL_ONLY" platform/GCP/terraform/modules/infrastructure/cloudrun.tf
+    grep -E "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER|INGRESS_TRAFFIC_INTERNAL_ONLY" platform/GCP/terraform/modules/infrastructure/cloudrun.tf
 
     echo "[STATIC CHECK 3] Verifying Non-VPC-Peering Apigee Configuration..."
     grep "disable_vpc_peering = true" platform/GCP/terraform/modules/apigee/main.tf

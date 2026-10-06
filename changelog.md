@@ -25,6 +25,64 @@ version = "1.6"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+## 2026-10-06 — Planning-doc reconciliation: stale pending work corrected
+
+**Status**: Documented and aligned to repo state
+
+**What changed**:
+- Reconciled the planning checklists against the actual Terraform implementation.
+- Confirmed that the Cloud Run image wiring, Artifact Registry permissions, VPC connector, and DNS declarations already exist in the repo.
+- Reduced the remaining open items to live-environment gates: billing / entitlement, Apigee provisioning, and live request/response proof.
+- Kept the final handoff gating on successful external validation rather than on static repo declarations.
+
+**Why**:
+- Earlier planning docs still listed repository-declared items as missing even though the code already existed.
+- The exercise remains blocked by live GCP state, not by missing Terraform declarations.
+
+**Files**:
+- `internalDocumentation/Planning/checklist.md`
+- `internalDocumentation/Planning/plan.md`
+- `changelog.md`
+
+**Validation performed**:
+- Static review of `platform/GCP/terraform/infrastructure.tf`
+- Static review of `platform/GCP/terraform/modules/security/main.tf`
+- Static review of `platform/GCP/terraform/modules/infrastructure/cloudrun.tf`
+- Static review of `platform/GCP/terraform/modules/infrastructure/dns.tf`
+
+---
+
+## 2026-10-05 — Pending Tasks Execution Plan Dry-Run & IaC Remediation
+
+**Status**: Implemented & Validated across all 10 Terraform modules.
+
+**What changed**:
+- Executed the pending tasks execution plan:
+  1. Updated `platform/GCP/terraform/infrastructure.tf` to pass all Cloud Run parameters (`cloud_run_image`, `cloud_run_container_port`, `cloud_run_service_account_email`, `cloud_run_min_instances`, `cloud_run_max_instances`, `cloud_run_cpu_limit`, `cloud_run_memory_limit`) to `module "infrastructure"`.
+  2. Created `platform/GCP/terraform/modules/infrastructure/dns.tf` declaring Cloud DNS resources for `api.example.com`.
+  3. Added IAM role bindings in `platform/GCP/terraform/modules/security/main.tf` for Cloud Build (`roles/artifactregistry.writer`, `roles/logging.logWriter`) and Cloud Run (`roles/artifactregistry.reader`).
+  4. Updated `platform/GCP/terraform/modules/apigee/README.md` to reflect active module status in `apigee.tf`.
+  5. Sanitized Cloud Monitoring alert metric filters in `platform/GCP/terraform/modules/observability/alerts.tf` for `https_lb_rule`.
+  6. Formatted all HCL code recursively with `terraform fmt -recursive`.
+  7. Validated structural correctness across all 10 Terraform modules (`apigee`, `cloud-armor`, `enable-gcp-services`, `hybrid-connectivity`, `iam`, `infrastructure`, `load-balancer`, `observability`, `psc`, `security`) via `terraform validate`.
+
+**Why**: Align the Terraform implementation with challenge requirements, complete all missing module parameters, grant least-privilege identity permissions, and ensure 100% reproducible IaC structure.
+
+**Files**:
+- `platform/GCP/terraform/infrastructure.tf`
+- `platform/GCP/terraform/modules/infrastructure/dns.tf` (NEW)
+- `platform/GCP/terraform/modules/security/main.tf`
+- `platform/GCP/terraform/modules/apigee/README.md`
+- `platform/GCP/terraform/modules/observability/alerts.tf`
+- `internalDocumentation/Planning/checklist.md`
+- `changelog.md`
+
+**Validation performed**:
+- `terraform fmt -recursive` — Executed cleanly.
+- `terraform validate` across all 10 modules — `Success! The configuration is valid.` on all modules.
+
+---
+
 ## 2026-10-04 — Hello-backend container path review
 
 **Status**: Documented. Terraform, the container, and `cloudbuild.yaml` were not changed.

@@ -14,7 +14,14 @@ module "infrastructure" {
   #api_backend_port = var.api_backend_port
   apigee_consumer_project_id           = var.compute_project_id
   cloud_run_service_name               = var.cloud_run_service_name
-  apigee_northbound_service_attachment = var.apigee_northbound_service_attachment
+  cloud_run_image                      = var.cloud_run_image
+  cloud_run_container_port             = var.cloud_run_container_port
+  cloud_run_service_account_email      = var.cloud_run_service_account_email
+  cloud_run_min_instances              = var.cloud_run_min_instances
+  cloud_run_max_instances              = var.cloud_run_max_instances
+  cloud_run_cpu_limit                  = var.cloud_run_cpu_limit
+  cloud_run_memory_limit               = var.cloud_run_memory_limit
+  apigee_northbound_service_attachment = module.apigee.northbound_service_attachment != "" ? module.apigee.northbound_service_attachment : var.apigee_northbound_service_attachment
   tls_private_key                      = var.tls_private_key
   tls_certificate                      = var.tls_certificate
   cloud_run_invoker_members = [

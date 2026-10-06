@@ -38,17 +38,17 @@ Run Terraform from `platform/GCP/terraform/`. This folder is a module. It has no
 
 ## Current status
 
-Nothing in this directory is applied.
+The Apigee module is instantiated in `platform/GCP/terraform/apigee.tf`.
 
 | File | State |
 |---|---|
-| `main.tf` | Empty. No `google_apigee_*` resources. |
+| `main.tf` | Contains `google_apigee_organization`, `google_apigee_instance`, `google_apigee_environment`, `google_apigee_envgroup`, and `google_apigee_endpoint_attachment`. |
+| `variables.tf` | Declares all input variables for the Apigee module. |
+| `outputs.tf` | Exports `northbound_service_attachment`, `endpoint_attachment_host`, and `apigee_service_account_email`. |
 | `Agents.md` | Edit contract for this directory. |
 | `README.md` | This document. |
 
-`platform/GCP/terraform/infrastructure.tf` does not instantiate `module "apigee"`. A `terraform plan` from the root therefore creates no Apigee organization, instance, environment, or endpoint attachment.
-
-The customer project still expects an Apigee-published northbound service attachment. `modules/infrastructure` reads that URI from `var.apigee_northbound_service_attachment` and builds the regional external Application Load Balancer and PSC network endpoint group only when the URI is present and is not a placeholder. Until this module (or an operator) supplies that URI, the northbound chain stays off.
+`platform/GCP/terraform/apigee.tf` instantiates `module "apigee"`. The northbound service attachment output is dynamically exported to `module.infrastructure` to wire the regional external ALB chain when provisioned.
 
 
 ## What this module is for

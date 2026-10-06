@@ -30,7 +30,7 @@ resource "google_monitoring_alert_policy" "high_backend_latency" {
   conditions {
     display_name = "Backend Latency p95 > ${var.latency_threshold_ms}ms"
     condition_threshold {
-      filter          = "metric.type = \"loadbalancing.googleapis.com/https/backend_latencies\""
+      filter          = "resource.type = \"https_lb_rule\" AND metric.type = \"loadbalancing.googleapis.com/https/backend_latencies\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = var.latency_threshold_ms
@@ -66,7 +66,7 @@ resource "google_monitoring_alert_policy" "high_5xx_error_rate" {
   conditions {
     display_name = "HTTP 5xx Error Spike (>10 req/min)"
     condition_threshold {
-      filter          = "metric.type = \"loadbalancing.googleapis.com/https/request_count\" AND metric.labels.response_code_class = \"500\""
+      filter          = "resource.type = \"https_lb_rule\" AND metric.type = \"loadbalancing.googleapis.com/https/request_count\" AND metric.labels.response_code_class = \"500\""
       duration        = "180s"
       comparison      = "COMPARISON_GT"
       threshold_value = 10

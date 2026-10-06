@@ -247,6 +247,28 @@ resource "google_project_iam_member" "cloud_run_metric_writer" {
   member  = "serviceAccount:${google_service_account.cloud_run_sa[0].email}"
 }
 
+# Cloud Run service account: Allow reading container images from Artifact Registry
+resource "google_project_iam_member" "cloud_run_ar_reader" {
+  count   = var.create_cloud_run_service_account ? 1 : 0
+  project = var.compute_project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa[0].email}"
+}
+
+# Cloud Build execution identity: Grant Artifact Registry writer role
+resource "google_project_iam_member" "cloud_build_ar_writer" {
+  project = var.compute_project_id
+  role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${var.compute_project_number}@cloudbuild.gserviceaccount.com"
+}
+
+# Cloud Build execution identity: Grant Cloud Logging writer role
+resource "google_project_iam_member" "cloud_build_log_writer" {
+  project = var.compute_project_id
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${var.compute_project_number}@cloudbuild.gserviceaccount.com"
+}
+
 # Note: Apigee admin service account and roles/apigee.admin role assignment
 # are managed centrally inside modules/apigee.
 
