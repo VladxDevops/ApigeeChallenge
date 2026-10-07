@@ -25,6 +25,26 @@ version = "1.4"
 - When NOT to Retrieve: When looking for current architecture state (use docs/architecture/), or for the changelog (use changelog.md).
 -->
 
+## Session: Apigee Ingress & Southbound PSC Connectivity Troubleshooting
+**Date**: 2026-10-06  
+**Agent**: Antigravity AI  
+**Objective**: Diagnose and resolve `curl` failure (`Connection refused` on `34.0.132.236:443` and `503 TARGET_CONNECT_TIMEOUT` on Apigee backend routing). Perform dry-run validation, apply live fixes, and document findings.
+
+### Summary
+1. Discovered target IP mismatch: `34.0.132.236` was unassigned; active external static IP for `apigee-northbound-fwd-rule` is `34.0.130.232`.
+2. Identified `PENDING` connection status on `api-psc-service-attachment` for Apigee tenant project `mcedd3b7984191d1d-tp`. Updated `consumer-accept-list` via `gcloud` to transition status to `ACCEPTED`.
+3. Identified missing zero-trust ingress firewall rule for PSC NAT subnet (`10.80.0.16/29`). Added `allow_psc_nat_to_backends` in `platform/GCP/terraform/modules/security/main.tf` and created rule in GCP.
+4. Granted `roles/run.invoker` to `allUsers` on Cloud Run service `rocketcode-demo-backend`.
+5. Verified live request: `curl -vk --resolve api.example.com:443:34.0.130.232 https://api.example.com/hello` returned `HTTP 200 OK` with JSON payload `{"status":"healthy","message":"Hello from Cloud Run backend!"}`.
+6. Documented full diagnostic analysis, architectural diagram, and runbooks at `docs/TROUBLESHOOTING/Apigee/Apigee Connectivity & Ingress TS.md`.
+
+### Key Findings
+- **IP Assignment**: `gcloud compute forwarding-rules list` confirmed `34.0.130.232` was allocated to the northbound XLB.
+- **PSC Tenant Acceptance**: Apigee's tenant project (`mcedd3b7984191d1d-tp`) requires explicit inclusion in `consumerAcceptLists` for `api-psc-service-attachment`.
+- **Zero-Trust Firewall**: `default_deny_ingress` dropped traffic exiting the PSC NAT subnet into the spoke VPC until an explicit ingress allow rule was declared.
+
+---
+
 ## Session: Hello-backend Terraform declaration review
 **Date**: 2026-10-04  
 **Agent**: Grok  
@@ -378,6 +398,55 @@ Attempted to run `terraform plan -var-file="./environments/DEV/dev.tfvars" -targ
 
 ### Outstanding Questions / Next Steps
 - Continue resolving the remaining Terraform schema issues in `modules/security/main.tf` before re-running the full `terraform plan` target.
+
+## Session: Fix infrastructure apply provider/runtime issue
+**Date**: 2026-10-06  
+**Agent**: Codex  
+**Objective**: Diagnose the targeted `module.infrastructure` apply failure around regional Cloud Armor policy recreation.
+
+### Summary
+Investigated the Cloud Armor recreate output and found a local provider/runtime problem in the Terraform toolchain. The open-ended Google provider constraint selected `hashicorp/google` `8.5.0`; local validation could not load that provider. Capped the provider below v8 and refreshed the lock file to `7.46.1`, which validates successfully and still supports `security_policy` on `google_compute_region_backend_service`.
+
+### Important Findings
+1. The regional Cloud Armor policy is correctly declared as `google_compute_region_security_policy.api_armor_policy` with inline `rules` blocks.
+2. The previous standalone `google_compute_region_security_policy_rule` state issue is documented, but the current pasted output showed destroy/create progress rather than that old priority-1000 read failure.
+3. Google provider `6.50.0` was tested and rejected because it does not support the regional backend-service `security_policy` argument used by the northbound ALB.
+4. Backend-backed initialization/plan is currently blocked by GCS state access: `403 UserProjectAccountProblem`, billing account disabled or not in good standing for the state bucket owner.
+
+### Files Changed
+- `platform/GCP/terraform/terraform.tf`
+- `platform/GCP/terraform/.terraform.lock.hcl`
+- `platform/GCP/terraform/modules/infrastructure/versions.tf`
+- `platform/GCP/terraform/modules/hybrid-connectivity/versions.tf`
+- `changelog.md`
+- `transcripts.md`
+
+### Validation Performed
+- `terraform fmt -recursive`
+- `TF_DATA_DIR=/tmp/apigeechallenge-tfdata terraform -chdir=platform/GCP/terraform init -backend=false -upgrade`
+- `TF_DATA_DIR=/tmp/apigeechallenge-tfdata terraform -chdir=platform/GCP/terraform validate` — success.
+
+### Outstanding
+- Re-run backend-backed `terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.infrastructure` after the remote state bucket billing/account issue is fixed.
+
+## Session: Fix PSC service attachment apply error
+**Date**: 2026-10-06  
+**Agent**: Codex  
+**Objective**: Resolve `Invalid value for field 'resource.connectionPreference': 'ACCEPT_AUTOMATIC'` during targeted infrastructure apply.
+
+### Summary
+Restored `google_compute_service_attachment.api_psc.connection_preference` to `ACCEPT_MANUAL`. The resource includes `consumer_accept_lists`, and GCP rejects the combination of automatic connection preference with accept/reject lists.
+
+### Files Changed
+- `platform/GCP/terraform/modules/infrastructure/networking.tf`
+- `changelog.md`
+- `transcripts.md`
+
+### Validation Performed
+- `terraform -chdir=platform/GCP/terraform validate` — success.
+
+### Outstanding
+- If Terraform still tries to replace `google_compute_region_security_policy.api_armor_policy`, detach the policy from the regional backend service first or avoid the replacement in the plan.
 
 ## Session: Security module schema fix and dev-stage simplification
 **Date**: 2026-09-21  

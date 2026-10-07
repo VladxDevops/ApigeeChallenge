@@ -12,16 +12,20 @@ module "infrastructure" {
   proxy_only_subnet_cidr             = var.proxy_only_subnet_cidr
   psc_nat_subnet_cidr                = var.psc_nat_subnet_cidr
   #api_backend_port = var.api_backend_port
-  apigee_consumer_project_id           = var.compute_project_id
-  cloud_run_service_name               = var.cloud_run_service_name
-  cloud_run_image                      = var.cloud_run_image
-  cloud_run_container_port             = var.cloud_run_container_port
-  cloud_run_service_account_email      = var.cloud_run_service_account_email
-  cloud_run_min_instances              = var.cloud_run_min_instances
-  cloud_run_max_instances              = var.cloud_run_max_instances
-  cloud_run_cpu_limit                  = var.cloud_run_cpu_limit
-  cloud_run_memory_limit               = var.cloud_run_memory_limit
-  apigee_northbound_service_attachment = module.apigee.northbound_service_attachment != "" ? module.apigee.northbound_service_attachment : var.apigee_northbound_service_attachment
+  apigee_consumer_project_id      = var.compute_project_id
+  cloud_run_service_name          = var.cloud_run_service_name
+  cloud_run_image                 = var.cloud_run_image
+  cloud_run_container_port        = var.cloud_run_container_port
+  cloud_run_service_account_email = var.cloud_run_service_account_email
+  cloud_run_min_instances         = var.cloud_run_min_instances
+  cloud_run_max_instances         = var.cloud_run_max_instances
+  cloud_run_cpu_limit             = var.cloud_run_cpu_limit
+  cloud_run_memory_limit          = var.cloud_run_memory_limit
+  # NOTE: The northbound PSC attachment URI is only known after the Apigee module exists.
+  # Using an unknown value from module.apigee in the same plan makes count conditional
+  # invalid. Keep the gate driven by the static input variable and set the URI in a
+  # subsequent apply once the Apigee attachment is available.
+  apigee_northbound_service_attachment = var.apigee_northbound_service_attachment
   tls_private_key                      = var.tls_private_key
   tls_certificate                      = var.tls_certificate
   cloud_run_invoker_members = [

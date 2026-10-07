@@ -130,6 +130,29 @@ resource "google_compute_firewall" "allow_proxy_to_backends" {
   description = "Allow proxy-only subnet traffic to private backend services."
 }
 
+# FLOW 1C: PSC NAT subnet to backend services / internal load balancer.
+resource "google_compute_firewall" "allow_psc_nat_to_backends" {
+  name      = "api-spoke-allow-psc-nat-to-backends"
+  project   = var.compute_project_id
+  network   = var.api_spoke_network_id
+  direction = "INGRESS"
+  priority  = 1001
+
+  source_ranges      = [var.psc_nat_subnet_cidr]
+  destination_ranges = [var.api_private_subnet_cidr]
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443", "8080"]
+  }
+
+  log_config {
+    metadata = var.firewall_log_config_enabled ? "INCLUDE_ALL_METADATA" : "EXCLUDE_ALL_METADATA"
+  }
+
+  description = "Allow traffic from Apigee PSC NAT subnet to internal load balancer / backend services."
+}
+
 # FLOW 2: Backend egress to the hub/on-premises network for private integration.
 resource "google_compute_firewall" "allow_backend_to_hub" {
   name      = "api-spoke-allow-backend-to-hub"

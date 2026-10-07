@@ -25,6 +25,34 @@ version = "1.6"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+## 2026-10-06 — Apigee Ingress & Southbound PSC Connectivity Fix
+
+**Status**: Verified & Fixed (Live HTTP 200 OK Response)
+
+**What changed**:
+- Resolved `Connection refused` error by identifying the correct external static IP (`34.0.130.232`) allocated to `apigee-northbound-fwd-rule`.
+- Fixed `503 TARGET_CONNECT_TIMEOUT` failure by adding tenant project `mcedd3b7984191d1d-tp` to `consumerAcceptLists` on producer `api-psc-service-attachment`.
+- Added missing zero-trust ingress firewall rule `api-spoke-allow-psc-nat-to-backends` in `platform/GCP/terraform/modules/security/main.tf` allowing traffic from `var.psc_nat_subnet_cidr` (`10.80.0.16/29`) to `var.api_private_subnet_cidr` on ports 80/443.
+- Updated `google_compute_service_attachment.api_psc` in `platform/GCP/terraform/modules/infrastructure/networking.tf` to include tenant project whitelisting.
+- Granted `roles/run.invoker` permission on Cloud Run service `rocketcode-demo-backend`.
+- Created comprehensive troubleshooting guide at `docs/TROUBLESHOOTING/Apigee/Apigee Connectivity & Ingress TS.md`.
+
+**Why**:
+- Client targeted unassigned IP `34.0.132.236` instead of load balancer IP `34.0.130.232`.
+- Apigee's tenant project connection was held in `PENDING` state by GCP PSC.
+- Zero-trust default deny ingress firewall policy dropped traffic exiting the PSC NAT subnet into the spoke VPC.
+
+**Files**:
+- `platform/GCP/terraform/modules/security/main.tf`
+- `platform/GCP/terraform/modules/infrastructure/networking.tf`
+- `docs/TROUBLESHOOTING/Apigee/Apigee Connectivity & Ingress TS.md`
+- `changelog.md`
+
+**Validation performed**:
+- `terraform validate` succeeded on `modules/security` and `modules/infrastructure`.
+- `gcloud compute service-attachments describe` confirmed `status: ACCEPTED`.
+- Live `curl` request to `https://api.example.com/hello` at `34.0.130.232` returned `HTTP/2 200 OK` with `{"status":"healthy","message":"Hello from Cloud Run backend!"}`.
+
 ## 2026-10-06 — Planning-doc reconciliation: stale pending work corrected
 
 **Status**: Documented and aligned to repo state
@@ -49,6 +77,51 @@ version = "1.6"
 - Static review of `platform/GCP/terraform/modules/security/main.tf`
 - Static review of `platform/GCP/terraform/modules/infrastructure/cloudrun.tf`
 - Static review of `platform/GCP/terraform/modules/infrastructure/dns.tf`
+
+---
+
+## 2026-10-06 — Pin Google Terraform provider below v8 for infrastructure applies
+
+**Status**: Fixed and validated.
+
+**What changed**:
+- Capped the Google provider constraint at `< 8.0.0` in the Terraform root and module `versions.tf` files while preserving the `>= 5.26.0` minimum required for regional Cloud Armor resources.
+- Refreshed `.terraform.lock.hcl` so the root Terraform configuration selects `hashicorp/google` `7.46.1` instead of `8.5.0`.
+
+**Why**:
+- `terraform validate` and targeted infrastructure work were using Google provider `8.5.0`, which failed to start correctly in the current Terraform CLI/runtime path.
+- Provider `6.50.0` was tested but rejected because it does not support `security_policy` on `google_compute_region_backend_service`.
+- Provider `7.46.1` supports the regional backend-service Cloud Armor attachment and validates successfully.
+
+**Files**:
+- `platform/GCP/terraform/terraform.tf`
+- `platform/GCP/terraform/.terraform.lock.hcl`
+- `platform/GCP/terraform/modules/infrastructure/versions.tf`
+- `platform/GCP/terraform/modules/hybrid-connectivity/versions.tf`
+
+**Validation performed**:
+- `TF_DATA_DIR=/tmp/apigeechallenge-tfdata terraform -chdir=platform/GCP/terraform init -backend=false -upgrade`
+- `TF_DATA_DIR=/tmp/apigeechallenge-tfdata terraform -chdir=platform/GCP/terraform validate` — `Success! The configuration is valid.`
+- A normal backend-backed init/plan is still blocked by the remote state bucket billing error: `403 UserProjectAccountProblem`.
+
+---
+
+## 2026-10-06 — Restore manual PSC service attachment approval mode
+
+**Status**: Fixed and validated.
+
+**What changed**:
+- Restored `google_compute_service_attachment.api_psc.connection_preference` to `ACCEPT_MANUAL`.
+
+**Why**:
+- GCP rejects `ACCEPT_AUTOMATIC` when a service attachment also defines `consumer_accept_lists`.
+- This module intentionally uses a scoped accept list for the Apigee consumer project, so manual acceptance mode is the valid configuration.
+
+**Files**:
+- `platform/GCP/terraform/modules/infrastructure/networking.tf`
+
+**Validation performed**:
+- `terraform -chdir=platform/GCP/terraform validate` — `Success! The configuration is valid.`
 
 ---
 

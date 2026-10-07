@@ -134,3 +134,6 @@ Why this matters:
 - It complements other protections already in place: `public_access_prevention = "enforced"`, versioning enabled, and bucket-level access restricted to approved identities.
 
 This is a required baseline for the state bucket, not a convenience toggle.
+
+GCP Documentation: 
+https://docs.cloud.google.com/storage/docs/uniform-bucket-level-access
