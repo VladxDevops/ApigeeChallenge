@@ -25,6 +25,21 @@ version = "1.6"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+
+## 2026-10-08 - Fixed versions errors: 
+
+Status: Fixed. 
+
+Errors when trying to terrafomr apply the infra module: 
+
+"Warning: Resource targeting is in effect \u2502 \u2502 You are creating a plan with the -target option, which means that the result of this plan may not represent all of the changes requested by the current configuration. \u2502 \u2502 The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error \u2502 message. \u2575 \u2577 \u2502 Warning: Failed to decode resource from state \u2502 \u2502 Error decoding "module.security.google_secret_manager_secret.api_key[0]" from prior state: unsupported attribute "secret_type" \u2575 \u2577 \u2502 Warning: Failed to decode resource from state \u2502 \u2502 Error decoding "module.security.google_secret_manager_secret.jwt_signing_key[0]" from prior state: unsupported attribute "secret_type" \u2575 \u2577 \u2502 Warning: Failed to decode resource from state \u2502 \u2502 Error decoding "module.security.google_secret_manager_secret.db_password[0]" from prior state: unsupported attribute "secret_type" \u2575 \u2577 \u2502 Warning: Failed to decode resource from state \u2502 \u2502 Error decoding "module.security.google_secret_manager_secret.oauth_client_secret[0]" from prior state: unsupported attribute "secret_type"" Before the apply I already changed the terraform provider version from: ">= 5.26.0, < 8.0.0" to: ">= 5.26.0"
+
+Fix: Changed the Google version in /ApigeeChallenge/platform/GCP/terraform/modules/hybrid-connectivity/versions.tf to ">= 5.26.0". 
+
+Now am I able to terraform apply the infra module. 
+
+
+
 ## 2026-10-06 — Apigee Ingress & Southbound PSC Connectivity Fix
 
 **Status**: Verified & Fixed (Live HTTP 200 OK Response)
