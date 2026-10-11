@@ -18,11 +18,6 @@ variable "compute_region" {
 
 }
 
-#variable "api_spoke_network_id" {
-#  description = "ID of the API spoke VPC network."
-#  type        = string
-#}
-
 #Terraform remote state bucket name:
 variable "terraform_remote_state_bucket_name" {
   description = "Name of the GCS bucket for Terraform remote state."
@@ -74,13 +69,6 @@ variable "onpremises_cidr" {
   type        = string
   default     = "10.0.0.0/12"
 }
-
-#Hub: 
-variable "hub_network_self_link" {
-  description = "Self link of the Hub VPC the API spoke peers with."
-  type        = string
-}
-
 
 ### Variables from Security module:
 # Secret Manager variables

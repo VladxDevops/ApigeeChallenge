@@ -16,12 +16,6 @@ variable "compute_region" {
 
 }
 
-#Commented out for hub. 
-#variable "api_spoke_network_id" {
-#  description = "ID of the API spoke VPC network."
-#  type        = string
-#}
-
 #Terraform remote state bucket name:
 variable "terraform_remote_state_bucket_name" {
   description = "Name of the GCS bucket for Terraform remote state."

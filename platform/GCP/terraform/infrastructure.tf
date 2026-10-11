@@ -4,18 +4,15 @@ module "infrastructure" {
   compute_project_id                 = var.compute_project_id
   compute_project_number             = var.compute_project_number
   compute_region                     = var.compute_region
-  #Before:
-  #api_spoke_network_id               = var.api_spoke_network_id
-  #Replaced by: 
-  hub_network_self_link = module.hybrid_connectivity.hub_network_self_link
   terraform_remote_state_bucket_name = var.terraform_remote_state_bucket_name
   terraform_deployer_service_account = var.terraform_deployer_service_account
   api_vpc_cidr                       = var.api_vpc_cidr
   api_private_subnet_cidr            = var.api_private_subnet_cidr
   proxy_only_subnet_cidr             = var.proxy_only_subnet_cidr
   psc_nat_subnet_cidr                = var.psc_nat_subnet_cidr
-  hub_network_self_link = var.hub_network_self_link
-  #api_backend_port = var.api_backend_port
+  # Hub is created by modules/hybrid-connectivity. Its self link is only known
+  # after that module plans, so it cannot also be a required input variable.
+  hub_network_self_link           = module.hybrid_connectivity.hub_network_self_link
   apigee_consumer_project_id      = var.compute_project_id
   cloud_run_service_name          = var.cloud_run_service_name
   cloud_run_image                 = var.cloud_run_image

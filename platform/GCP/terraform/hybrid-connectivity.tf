@@ -8,4 +8,6 @@ module "hybrid_connectivity" {
   onpremises_cidr    = var.onpremises_cidr
 
   enable_secret_manager = var.enable_secret_manager
+
+  depends_on = [module.enable-gcp-services]
 }

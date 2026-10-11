@@ -73,7 +73,7 @@ resource "google_compute_router" "hub" {
   region  = var.compute_region
   network = google_compute_network.hub[0].id
 
-    bgp {
+  bgp {
     asn               = var.hub_router_asn
     advertise_mode    = "CUSTOM"
     advertised_groups = ["ALL_SUBNETS"]
