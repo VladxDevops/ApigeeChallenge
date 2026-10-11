@@ -22,3 +22,8 @@ output "vpn_tunnel_names" {
     google_compute_vpn_tunnel.onprem_tunnel1[0].name,
   ] : []
 }
+
+output "hub_network_self_link" {
+  description = "Self link of the simulated hub VPC (null when the hub is not simulated)."
+  value       = var.simulate_hub_and_onpremises ? google_compute_network.hub[0].self_link : null
+}

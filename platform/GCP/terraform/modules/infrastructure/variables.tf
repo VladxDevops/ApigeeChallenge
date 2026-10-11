@@ -16,10 +16,11 @@ variable "compute_region" {
 
 }
 
-variable "api_spoke_network_id" {
-  description = "ID of the API spoke VPC network."
-  type        = string
-}
+#Commented out for hub. 
+#variable "api_spoke_network_id" {
+#  description = "ID of the API spoke VPC network."
+#  type        = string
+#}
 
 #Terraform remote state bucket name:
 variable "terraform_remote_state_bucket_name" {
@@ -161,4 +162,10 @@ variable "cloud_run_vpc_connector_cidr" {
   description = "CIDR used by the Cloud Run VPC connector for private egress. Must not overlap the API spoke subnets."
   type        = string
   default     = "10.80.0.128/28"
+}
+
+#Hub
+variable "hub_network_self_link" {
+  description = "Self link of the Hub VPC the API spoke peers with."
+  type        = string
 }

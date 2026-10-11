@@ -73,8 +73,15 @@ resource "google_compute_router" "hub" {
   region  = var.compute_region
   network = google_compute_network.hub[0].id
 
-  bgp {
-    asn = var.hub_router_asn
+    bgp {
+    asn               = var.hub_router_asn
+    advertise_mode    = "CUSTOM"
+    advertised_groups = ["ALL_SUBNETS"]
+
+    advertised_ip_ranges {
+      range       = var.api_vpc_cidr
+      description = "API spoke VPC, reachable through the hub via VPC peering"
+    }
   }
 }
 

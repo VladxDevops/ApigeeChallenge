@@ -20,7 +20,7 @@ resource "google_storage_bucket" "terraform_state_backend_rocket" {
 
 terraform {
   backend "gcs" {
-    bucket = "terraform_state_backend_rocket"
+    bucket = var.terraform_remote_state_bucket_name
     prefix = "terraform/state"
   }
 

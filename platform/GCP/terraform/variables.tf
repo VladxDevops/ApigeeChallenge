@@ -9,6 +9,8 @@ variable "compute_project_number" {
 }
 
 
+### Infrastructure module variables:
+
 # Networking, Region and zone for the GCP resources: 
 variable "compute_region" {
   description = "Compute region for the GCP resources."
@@ -16,10 +18,10 @@ variable "compute_region" {
 
 }
 
-variable "api_spoke_network_id" {
-  description = "ID of the API spoke VPC network."
-  type        = string
-}
+#variable "api_spoke_network_id" {
+#  description = "ID of the API spoke VPC network."
+#  type        = string
+#}
 
 #Terraform remote state bucket name:
 variable "terraform_remote_state_bucket_name" {
@@ -34,6 +36,7 @@ variable "terraform_deployer_service_account" {
   type        = string
 }
 
+### Variables for networking and rightsized subnets:
 # Variables for VPC and rightsized subnets:
 variable "api_vpc_cidr" {
   description = "Documentation-only supernet for the API spoke VPC."
@@ -72,6 +75,14 @@ variable "onpremises_cidr" {
   default     = "10.0.0.0/12"
 }
 
+#Hub: 
+variable "hub_network_self_link" {
+  description = "Self link of the Hub VPC the API spoke peers with."
+  type        = string
+}
+
+
+### Variables from Security module:
 # Secret Manager variables
 variable "enable_secret_manager" {
   description = "Enable Secret Manager resources for storing sensitive application configuration."
