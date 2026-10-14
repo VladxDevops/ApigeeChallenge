@@ -9,6 +9,7 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+terraform.tfstate*
 
 # Terraform variable files that may contain environment-specific secrets
 *.tfvars

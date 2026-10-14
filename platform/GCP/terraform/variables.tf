@@ -31,6 +31,11 @@ variable "terraform_deployer_service_account" {
   type        = string
 }
 
+variable "terraform_deployer_service_account_name" {
+  description = "Service account name/ldap for the Terraform deployer."
+  type        = string
+}
+
 ### Variables for networking and rightsized subnets:
 # Variables for VPC and rightsized subnets:
 variable "api_vpc_cidr" {

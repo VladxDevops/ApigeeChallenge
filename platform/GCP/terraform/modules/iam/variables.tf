@@ -17,6 +17,7 @@ variable "compute_region" {
 }
 
 #Terraform remote state bucket name:
+
 variable "terraform_remote_state_bucket_name" {
   description = "Name of the GCS bucket for Terraform remote state."
   type        = string
@@ -25,5 +26,11 @@ variable "terraform_remote_state_bucket_name" {
 #Terraform deployer service account:
 variable "terraform_deployer_service_account" {
   description = "Service account email for the Terraform deployer."
+  type        = string
+}
+
+#Service account name/ldap
+variable "terraform_deployer_service_account_name" {
+  description = "Service account name/ldap for the Terraform deployer."
   type        = string
 }

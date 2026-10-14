@@ -1,12 +1,24 @@
 # Terraform Deployer Service Account declaration
 resource "google_service_account" "terraform_deployer" {
-  account_id   = "dev-terraform-deployer-service"
-  display_name = "Terraform Deployer Service Account"
+  account_id   = var.terraform_deployer_service_account_name
+  display_name = "DEV Terraform Deployer Service Account"
   project      = var.compute_project_id
   description  = "Dedicated service account used by Terraform for GCP resource provisioning."
 }
 
 # Terraform Deployer Service Account Roles:
+
+resource "google_project_iam_member" "terraform_sa_project_iam_admin" {
+  project = var.compute_project_id
+  role    = "roles/resourcemanager.projectIamAdmin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
+
+resource "google_project_iam_member" "terraform_sa_iam_security_admin" {
+  project = var.compute_project_id
+  role    = "roles/iam.securityAdmin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
 
 resource "google_project_iam_member" "terraform_sa_service_usage_admin" {
   project = var.compute_project_id
@@ -14,7 +26,49 @@ resource "google_project_iam_member" "terraform_sa_service_usage_admin" {
   member  = "serviceAccount:${var.terraform_deployer_service_account}"
 }
 
+resource "google_project_iam_member" "terraform_sa_iam_service_account_creator" {
+  project = var.compute_project_id
+  role    = "roles/iam.serviceAccountCreator"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
 
+resource "google_project_iam_member" "terraform_sa_compute_network_admin" {
+  project = var.compute_project_id
+  role    = "roles/compute.networkAdmin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
+
+resource "google_project_iam_member" "terraform_sa_infrastructure_admin" {
+  project = var.compute_project_id
+  role    = "roles/compute.admin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
+
+resource "google_project_iam_member" "terraform_sa_serverless_vpc_access_admin" {
+  project = var.compute_project_id
+  role    = "roles/vpcaccess.admin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
+
+resource "google_project_iam_member" "terraform_sa_compute_security_admin" {
+  project = var.compute_project_id
+  role    = "roles/compute.securityAdmin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
+
+resource "google_project_iam_member" "terraform_sa_iam_service_account_user" {
+  project = var.compute_project_id
+  role    = "roles/iam.serviceAccountUser"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
+
+resource "google_project_iam_member" "terraform_sa_storage_admin" {
+  project = var.compute_project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${var.terraform_deployer_service_account}"
+}
+
+#Roles that can be added by itself: 
 resource "google_project_iam_member" "terraform_sa_google_cloud_deploy_admin" {
   project = var.compute_project_id
   role    = "roles/clouddeploy.admin"
@@ -57,30 +111,6 @@ resource "google_project_iam_member" "terraform_sa_cloud_run_invoker" {
   member  = "serviceAccount:${var.terraform_deployer_service_account}"
 }
 
-resource "google_project_iam_member" "terraform_sa_compute_network_admin" {
-  project = var.compute_project_id
-  role    = "roles/compute.networkAdmin"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
-resource "google_project_iam_member" "terraform_sa_iam_service_account_creator" {
-  project = var.compute_project_id
-  role    = "roles/iam.serviceAccountCreator"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
-resource "google_project_iam_member" "terraform_sa_infrastructure_admin" {
-  project = var.compute_project_id
-  role    = "roles/compute.admin"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
-resource "google_project_iam_member" "terraform_sa_project_iam_admin" {
-  project = var.compute_project_id
-  role    = "roles/resourcemanager.projectIamAdmin"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
 resource "google_project_iam_member" "terraform_sa_secret_manager_admin" {
   project = var.compute_project_id
   role    = "roles/secretmanager.admin"
@@ -93,45 +123,15 @@ resource "google_project_iam_member" "terraform_sa_secret_manager_accessor" {
   member  = "serviceAccount:${var.terraform_deployer_service_account}"
 }
 
-resource "google_project_iam_member" "terraform_sa_iam_security_admin" {
-  project = var.compute_project_id
-  role    = "roles/iam.securityAdmin"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
-resource "google_project_iam_member" "terraform_sa_compute_security_admin" {
-  project = var.compute_project_id
-  role    = "roles/compute.securityAdmin"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
 resource "google_project_iam_member" "terraform_sa_compute_load_balancer_admin" {
   project = var.compute_project_id
   role    = "roles/compute.loadBalancerAdmin"
   member  = "serviceAccount:${var.terraform_deployer_service_account}"
 }
 
-resource "google_project_iam_member" "terraform_sa_serverless_vpc_access_admin" {
-  project = var.compute_project_id
-  role    = "roles/vpcaccess.admin"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
-resource "google_project_iam_member" "terraform_sa_iam_service_account_user" {
-  project = var.compute_project_id
-  role    = "roles/iam.serviceAccountUser"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
 resource "google_project_iam_member" "terraform_sa_service_usage_consumer" {
   project = var.compute_project_id
   role    = "roles/serviceusage.serviceUsageConsumer"
-  member  = "serviceAccount:${var.terraform_deployer_service_account}"
-}
-
-resource "google_project_iam_member" "terraform_sa_storage_admin" {
-  project = var.compute_project_id
-  role    = "roles/storage.admin"
   member  = "serviceAccount:${var.terraform_deployer_service_account}"
 }
 
