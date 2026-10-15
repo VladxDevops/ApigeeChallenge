@@ -1,7 +1,7 @@
 substitutions:
   _REGION: "us-south1"
-  _REPOSITORY: "rocketcode-demo-repo"
-  _SERVICE_NAME: "rocketcode-demo-backend"
+  _REPOSITORY: "apigee-challenge-repository"
+  _SERVICE_NAME: "hello-container-backend"
   _SHORT_SHA: "local-build"
 
 steps:

@@ -13,6 +13,7 @@ module "infrastructure" {
   # Hub is created by modules/hybrid-connectivity. Its self link is only known
   # after that module plans, so it cannot also be a required input variable.
   hub_network_self_link           = module.hybrid_connectivity.hub_network_self_link
+  artifact_registry_repository_id  = var.artifact_registry_repository_id
   apigee_consumer_project_id      = var.compute_project_id
   cloud_run_service_name          = var.cloud_run_service_name
   cloud_run_image                 = var.cloud_run_image

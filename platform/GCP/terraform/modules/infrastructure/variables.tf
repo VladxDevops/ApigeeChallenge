@@ -109,7 +109,6 @@ variable "cloud_run_memory_limit" {
 variable "artifact_registry_repository_id" {
   description = "Artifact Registry repository ID / name for container images."
   type        = string
-  default     = "rocketcode-demo-repo"
 }
 
 variable "artifact_registry_format" {

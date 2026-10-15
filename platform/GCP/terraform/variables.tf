@@ -165,10 +165,10 @@ variable "apigee_admin_service_account_name_dev" {
   type        = string
 }
 
+#Cloud Run: 
 variable "cloud_run_image" {
   description = "Container image for the Cloud Run backend service."
   type        = string
-  default     = "gcr.io/cloudrun/hello"
 }
 
 variable "cloud_run_container_port" {
@@ -207,10 +207,16 @@ variable "cloud_run_memory_limit" {
   default     = "512Mi"
 }
 
+variable "cloud_run_vpc_connector_cidr" {
+  description = "CIDR for the Cloud Run VPC connector inside the API spoke VPC. Must not overlap the existing subnets."
+  type        = string
+}
+
+
+#Artifact Registry: 
 variable "artifact_registry_repository_id" {
   description = "Artifact Registry repository ID / name for container images."
   type        = string
-  default     = "rocketcode-demo-repo"
 }
 
 variable "artifact_registry_format" {
@@ -225,7 +231,3 @@ variable "artifact_registry_cleanup_enabled" {
   default     = false
 }
 
-variable "cloud_run_vpc_connector_cidr" {
-  description = "CIDR for the Cloud Run VPC connector inside the API spoke VPC. Must not overlap the existing subnets."
-  type        = string
-}
