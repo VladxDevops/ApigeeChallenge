@@ -162,6 +162,18 @@ resource "google_project_iam_member" "terraform_sa_apigee_admin_role" {
 ###End of Roles for terraform deployer service account
 
 
+### Cloud Build:
+## Cloud Build Service Account roles: 
+#Artifact Registry Writer Role for the Cloud Build Service Account:
+
+resource "google_project_iam_member" "cloud_build_sa_artifact_registry_writer" {
+  project = var.compute_project_id
+  role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${var.compute_project_number}-compute@developer.gserviceaccount.com"
+}
+###End of Roles for Cloud Build Service Account. 
+
+
 ### Cloud Run: 
 # Cloud Run Service Account declaration: 
 resource "google_service_account" "cloud_run_service_account" {
@@ -170,6 +182,7 @@ resource "google_service_account" "cloud_run_service_account" {
   project      = var.compute_project_id
   description  = "Dedicated service account used by Cloud Run for execution."
 }
+
 
 ## Roles for the Cloud Run Service Account:
 
@@ -189,6 +202,7 @@ resource "google_project_iam_member" "cloud_run_sa_artifact_registry_reader" {
   depends_on = [ google_service_account.cloud_run_service_account ]
 }
 
+
 # Cloud Run Service Account Roles for Secret Manager secret accessor:
 #resource "google_project_iam_member" "cloud_run_sa_secret_manager_accessor" {
 #  project = var.compute_project_id
@@ -196,4 +210,4 @@ resource "google_project_iam_member" "cloud_run_sa_artifact_registry_reader" {
 #  member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
 #  depends_on = [ google_service_account.cloud_run_service_account ]
 #}
-
+###End of Roles for Cloud Run Service Account.
