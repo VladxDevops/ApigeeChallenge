@@ -162,3 +162,38 @@ resource "google_project_iam_member" "terraform_sa_apigee_admin_role" {
 ###End of Roles for terraform deployer service account
 
 
+### Cloud Run: 
+# Cloud Run Service Account declaration: 
+resource "google_service_account" "cloud_run_service_account" {
+  account_id   = var.cloudrun_service_account_ldap
+  display_name = "Cloud Run Service Account"
+  project      = var.compute_project_id
+  description  = "Dedicated service account used by Cloud Run for execution."
+}
+
+## Roles for the Cloud Run Service Account:
+
+# Cloud Run Invoker Role for the Cloud Run Service Account:
+resource "google_project_iam_member" "cloud_run_sa_cloud_run_invoker" {
+  project = var.compute_project_id
+  role    = "roles/run.invoker"
+  member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}" 
+  depends_on = [ google_service_account.cloud_run_service_account ]
+}
+
+# Cloud Run Service Account Roles for Artifact Registry reader: 
+resource "google_project_iam_member" "cloud_run_sa_artifact_registry_reader" {
+  project = var.compute_project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}" 
+  depends_on = [ google_service_account.cloud_run_service_account ]
+}
+
+# Cloud Run Service Account Roles for Secret Manager secret accessor:
+#resource "google_project_iam_member" "cloud_run_sa_secret_manager_accessor" {
+#  project = var.compute_project_id
+#  role    = "roles/secretmanager.secretAccessor"
+#  member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
+#  depends_on = [ google_service_account.cloud_run_service_account ]
+#}
+

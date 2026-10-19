@@ -29,8 +29,16 @@ variable "terraform_deployer_service_account" {
   type        = string
 }
 
-#Service account name/ldap
+# Terraform Service account name/ldap
 variable "terraform_deployer_service_account_name" {
   description = "Service account name/ldap for the Terraform deployer."
+  type        = string
+}
+
+# Cloud Run: 
+
+## Cloud Run Service Account LDAP: 
+variable "cloudrun_service_account_ldap" {
+  description = "LDAP name for the Cloud Run service account to be created in the IAM module. It will be used by the Cloud Run service for execution."
   type        = string
 }

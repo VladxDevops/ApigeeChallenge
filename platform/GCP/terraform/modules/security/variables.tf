@@ -131,6 +131,14 @@ variable "health_check_timeout_sec" {
 }
 
 # IAM configuration
+# Cloud Run: 
+
+## Cloud Run Service Account LDAP: 
+variable "cloudrun_service_account_ldap" {
+  description = "LDAP name for the Cloud Run service account to be created in the IAM module. It will be used by the Cloud Run service for execution."
+  type        = string
+}
+
 variable "create_cloud_run_service_account" {
   description = "Create a dedicated service account for Cloud Run workloads."
   type        = bool
