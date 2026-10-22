@@ -23,6 +23,7 @@ module "observability" {
     managed-by  = "terraform"
     domain      = "observability"
   }
+  terraform_deployer_service_account_ldap = var.terraform_deployer_service_account_ldap
 }
 
 output "observability_dashboard_id" {

@@ -18,6 +18,7 @@ module "infrastructure" {
   cloud_run_service_name          = var.cloud_run_service_name
   cloud_run_image                 = var.cloud_run_image
   cloud_run_container_port        = var.cloud_run_container_port
+  cloud_run_service_account_ldap = var.cloud_run_service_account_ldap
   cloud_run_service_account_email = var.cloud_run_service_account_email
   cloud_run_min_instances         = var.cloud_run_min_instances
   cloud_run_max_instances         = var.cloud_run_max_instances

@@ -72,3 +72,10 @@ variable "labels" {
     domain      = "observability"
   }
 }
+
+###Cloud Run: 
+
+variable "terraform_deployer_service_account_ldap" {
+  description = "Service account name/ldap for the Terraform deployer."
+  type        = string
+}

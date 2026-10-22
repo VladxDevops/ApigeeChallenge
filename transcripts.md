@@ -25,6 +25,19 @@ version = "1.4"
 - When NOT to Retrieve: When looking for current architecture state (use docs/architecture/), or for the changelog (use changelog.md).
 -->
 
+## Session: Cloud Run runtime identity attachment
+**Date**: 2026-10-22
+**Agent**: Codex
+**Objective**: Attach the existing Terraform-managed Cloud Run service account to the DEV Cloud Run service through `cloud_run_service_account_email`.
+
+### Summary
+- Confirmed the Cloud Run v2 service already assigns `template.service_account` from `cloud_run_service_account_email`.
+- Updated the DEV value from empty to `dev-cloud-run-sa@apigeechallenge.iam.gserviceaccount.com`, preventing fallback to the default Compute Engine service account.
+
+### Validation Performed
+- Confirmed the Cloud Run service template consumes `cloud_run_service_account_email`.
+- `terraform validate` could not run because the locally installed Google provider plugin failed its protocol handshake.
+
 ## Session: Apigee Ingress & Southbound PSC Connectivity Troubleshooting
 **Date**: 2026-10-06  
 **Agent**: Antigravity AI  

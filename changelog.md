@@ -25,6 +25,21 @@ version = "1.6"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+## 2026-10-22 — Attach the dedicated Cloud Run runtime identity
+
+**What changed**:
+- Set `cloud_run_service_account_email` in the DEV environment configuration to the Terraform-managed `dev-cloud-run-sa` account.
+
+**Why**:
+- The empty value caused the Cloud Run service template to fall back to the default Compute Engine service account instead of its dedicated runtime identity.
+
+**Affected area**:
+- Cloud Run workload identity.
+
+**Validation performed**:
+- Confirmed the Cloud Run service template consumes `cloud_run_service_account_email`.
+- `terraform validate` could not run because the locally installed Google provider plugin failed its protocol handshake.
+
 
 ## 2026-10-08 - Fixed versions errors: 
 
