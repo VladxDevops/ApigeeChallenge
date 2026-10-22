@@ -1,6 +1,6 @@
 # Terraform Deployer Service Account declaration
 resource "google_service_account" "terraform_deployer" {
-  account_id   = var.terraform_deployer_service_account_name
+  account_id   = var.terraform_deployer_service_account_ldap
   display_name = "DEV Terraform Deployer Service Account"
   project      = var.compute_project_id
   description  = "Dedicated service account used by Terraform for GCP resource provisioning."
@@ -177,7 +177,7 @@ resource "google_project_iam_member" "cloud_build_sa_artifact_registry_writer" {
 ### Cloud Run: 
 # Cloud Run Service Account declaration: 
 resource "google_service_account" "cloud_run_service_account" {
-  account_id   = var.cloudrun_service_account_ldap
+  account_id   = var.cloud_run_service_account_ldap
   display_name = "Cloud Run Service Account"
   project      = var.compute_project_id
   description  = "Dedicated service account used by Cloud Run for execution."

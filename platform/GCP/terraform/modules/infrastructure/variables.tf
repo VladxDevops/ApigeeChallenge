@@ -50,6 +50,8 @@ variable "psc_nat_subnet_cidr" {
   type        = string
 }
 
+##Cloud Run: 
+
 # Cloud Run backend variables
 variable "cloud_run_service_name" {
   description = "Name of the Cloud Run backend service."
@@ -103,6 +105,12 @@ variable "cloud_run_memory_limit" {
   description = "Memory limit for the Cloud Run container."
   type        = string
   default     = "512Mi"
+}
+
+# Cloud Run Service Account name/ldap: 
+variable "cloud_run_service_account_ldap" {
+  description = "LDAP name for the Cloud Run service account to be created in the IAM module. It will be used by the Cloud Run service for execution."
+  type        = string
 }
 
 # Artifact Registry variables

@@ -31,7 +31,7 @@ variable "terraform_deployer_service_account" {
   type        = string
 }
 
-variable "terraform_deployer_service_account_name" {
+variable "terraform_deployer_service_account_ldap" {
   description = "Service account name/ldap for the Terraform deployer."
   type        = string
 }
@@ -212,6 +212,11 @@ variable "cloud_run_vpc_connector_cidr" {
   type        = string
 }
 
+# Cloud Run Service Account name/ldap: 
+variable "cloud_run_service_account_ldap" {
+  description = "LDAP name for the Cloud Run service account to be created in the IAM module. It will be used by the Cloud Run service for execution."
+  type        = string
+}
 
 #Artifact Registry: 
 variable "artifact_registry_repository_id" {

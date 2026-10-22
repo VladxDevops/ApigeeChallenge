@@ -50,6 +50,7 @@ module "security" {
   compute_project_number             = var.compute_project_number
   compute_region                     = var.compute_region
   terraform_deployer_service_account = var.terraform_deployer_service_account
+  cloud_run_service_account_ldap = var.cloud_run_service_account_ldap
 
 
   # Network references from infrastructure module

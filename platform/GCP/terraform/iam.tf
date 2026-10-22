@@ -6,6 +6,6 @@ module "iam" {
   compute_region                     = var.compute_region
   terraform_deployer_service_account = var.terraform_deployer_service_account
   terraform_remote_state_bucket_name = var.terraform_remote_state_bucket_name
-  terraform_deployer_service_account_name = var.terraform_deployer_service_account_name
-  cloudrun_service_account_ldap = var.cloudrun_service_account_ldap
+  terraform_deployer_service_account_ldap = var.terraform_deployer_service_account_ldap
+  cloud_run_service_account_ldap = var.cloud_run_service_account_ldap
 }
