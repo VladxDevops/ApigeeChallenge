@@ -140,7 +140,14 @@ variable "tls_certificate" {
 }
 
 
-### Apigee module variables:
+### ### Apigee: 
+## SApigee module variables:
+
+variable "apigee_tenant_project_id" {
+  description = "Google-managed Apigee tenant project ID (e.g. n8829d26fa857b5a0-tp) allowed to connect to southbound PSC service attachment."
+  type        = string
+  default     = ""
+}
 
 variable "apigee_analytics_region" {
   description = "Apigee analytics region. Verify it against the regions Apigee supports for analytics."
@@ -165,7 +172,8 @@ variable "apigee_admin_service_account_name_dev" {
   type        = string
 }
 
-#Cloud Run: 
+
+### Cloud Run: 
 variable "cloud_run_image" {
   description = "Container image for the Cloud Run backend service."
   type        = string

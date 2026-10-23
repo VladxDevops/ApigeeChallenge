@@ -50,7 +50,7 @@ variable "psc_nat_subnet_cidr" {
   type        = string
 }
 
-##Cloud Run: 
+### Cloud Run: 
 
 # Cloud Run backend variables
 variable "cloud_run_service_name" {
@@ -113,7 +113,7 @@ variable "cloud_run_service_account_ldap" {
   type        = string
 }
 
-# Artifact Registry variables
+### Artifact Registry variables
 variable "artifact_registry_repository_id" {
   description = "Artifact Registry repository ID / name for container images."
   type        = string
@@ -139,7 +139,7 @@ variable "artifact_registry_cleanup_enabled" {
 #  description = "Port the backend service listens on behind the ILB."
 #}
 
-
+### APIgee variables:
 variable "apigee_consumer_project_id" {
   type        = string
   description = "Project ID or number of the Apigee (or other) consumer allowed to connect via PSC."
@@ -148,6 +148,12 @@ variable "apigee_consumer_project_id" {
 variable "apigee_northbound_service_attachment" {
   type        = string
   description = "Service attachment URI Apigee provides for northbound PSC connectivity."
+}
+
+variable "apigee_tenant_project_id" {
+  type        = string
+  description = "Apigee tenant project ID allowed to connect to the southbound service attachment."
+  default     = ""
 }
 
 variable "tls_private_key" {

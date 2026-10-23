@@ -15,6 +15,7 @@ module "infrastructure" {
   hub_network_self_link           = module.hybrid_connectivity.hub_network_self_link
   artifact_registry_repository_id  = var.artifact_registry_repository_id
   apigee_consumer_project_id      = var.compute_project_id
+  apigee_tenant_project_id   = var.apigee_tenant_project_id
   cloud_run_service_name          = var.cloud_run_service_name
   cloud_run_image                 = var.cloud_run_image
   cloud_run_container_port        = var.cloud_run_container_port

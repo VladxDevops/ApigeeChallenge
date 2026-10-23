@@ -142,6 +142,14 @@ resource "google_compute_service_attachment" "api_psc" {
     connection_limit  = 2
   }
 
+  dynamic "consumer_accept_lists" {
+    for_each = var.apigee_tenant_project_id != "" ? [var.apigee_tenant_project_id] : []
+    content {
+      project_id_or_num = consumer_accept_lists.value
+      connection_limit  = 2
+    }
+  }
+
   enable_proxy_protocol = false
 }
 
