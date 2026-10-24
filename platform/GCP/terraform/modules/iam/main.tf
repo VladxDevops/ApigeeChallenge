@@ -183,6 +183,12 @@ resource "google_service_account" "cloud_run_service_account" {
   description  = "Dedicated service account used by Cloud Run for execution."
 }
 
+#Run Invoker Role for the Cloud Run Service Account:
+resource "google_project_iam_member" "cloud_run_service_account_run_invoker" {
+  project = var.compute_project_id
+  role    = "roles/run.invoker"
+  member  = "serviceAccount:${var.cloud_run_service_account_ldap}@${var.compute_project_id}.iam.gserviceaccount.com"
+}
 
 ## Roles for the Cloud Run Service Account:
 

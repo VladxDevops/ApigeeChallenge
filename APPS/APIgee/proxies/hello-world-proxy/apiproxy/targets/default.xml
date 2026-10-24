@@ -12,7 +12,12 @@
   <Flows/>
 
   <HTTPTargetConnection>
-    <URL>http://10.0.148.2/</URL>
+       <Authentication>
+     <GoogleIDToken>
+       <Audience>https://hello-container-backend-274925551228.us-south1.run.app</Audience>
+     </GoogleIDToken>
+   </Authentication>
+    <URL>https://10.0.148.2/hello</URL>
     <Properties>
       <Property name="success.codes">1xx,2xx,3xx</Property>
     </Properties>

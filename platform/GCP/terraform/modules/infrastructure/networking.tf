@@ -132,7 +132,7 @@ resource "google_compute_service_attachment" "api_psc" {
   project               = var.compute_project_id
   region                = var.compute_region
   description           = "PSC service attachment publishing the Cloud Run backend to Apigee."
-  target_service        = google_compute_forwarding_rule.api_ilb.id
+  target_service = google_compute_forwarding_rule.api_ilb_https.id
   connection_preference = "ACCEPT_MANUAL"
 
   nat_subnets = [google_compute_subnetwork.psc_nat.id]
@@ -309,6 +309,58 @@ resource "google_compute_forwarding_rule" "apigee_northbound" {
   network_tier          = "STANDARD"
   network               = google_compute_network.api_spoke.id
 
+
+  depends_on = [google_compute_subnetwork.regional_proxy_only]
+}
+
+
+# For Troubleshooting 4xx errors:
+resource "tls_private_key" "ilb_self_signed" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+resource "tls_self_signed_cert" "ilb_self_signed" {
+  private_key_pem       = tls_private_key.ilb_self_signed.private_key_pem
+  validity_period_hours = 8760
+  allowed_uses          = ["key_encipherment", "digital_signature", "server_auth"]
+
+  subject {
+    common_name  = "api-ilb.internal"
+    organization = "Rocket Code Demo"
+  }
+}
+
+resource "google_compute_region_ssl_certificate" "api_ilb" {
+  name_prefix = "api-ilb-cert-"
+  project     = var.compute_project_id
+  region      = var.compute_region
+  private_key = tls_private_key.ilb_self_signed.private_key_pem
+  certificate = tls_self_signed_cert.ilb_self_signed.cert_pem
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "google_compute_region_target_https_proxy" "api_proxy_https" {
+  name             = "api-backend-https-proxy"
+  project          = var.compute_project_id
+  region           = var.compute_region
+  url_map          = google_compute_region_url_map.api_urlmap.id
+  ssl_certificates = [google_compute_region_ssl_certificate.api_ilb.id]
+}
+
+resource "google_compute_forwarding_rule" "api_ilb_https" {
+  name                  = "api-ilb-https-forwarding-rule"
+  project               = var.compute_project_id
+  region                = var.compute_region
+  network               = google_compute_network.api_spoke.id
+  subnetwork            = google_compute_subnetwork.api_private.id
+  ip_protocol           = "TCP"
+  port_range            = "443"
+  load_balancing_scheme = "INTERNAL_MANAGED"
+  target                = google_compute_region_target_https_proxy.api_proxy_https.id
 
   depends_on = [google_compute_subnetwork.regional_proxy_only]
 }
