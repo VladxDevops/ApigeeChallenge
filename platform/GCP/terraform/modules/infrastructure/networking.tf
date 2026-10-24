@@ -314,7 +314,8 @@ resource "google_compute_forwarding_rule" "apigee_northbound" {
 }
 
 
-# For Troubleshooting 4xx errors:
+# For Troubleshooting 4xx and 5xx http errors:
+
 resource "tls_private_key" "ilb_self_signed" {
   algorithm = "RSA"
   rsa_bits  = 2048
@@ -324,6 +325,9 @@ resource "tls_self_signed_cert" "ilb_self_signed" {
   private_key_pem       = tls_private_key.ilb_self_signed.private_key_pem
   validity_period_hours = 8760
   allowed_uses          = ["key_encipherment", "digital_signature", "server_auth"]
+
+  dns_names    = ["api-ilb.internal"]
+  ip_addresses = [var.apigee_endpoint_attachment_host]
 
   subject {
     common_name  = "api-ilb.internal"
@@ -364,3 +368,4 @@ resource "google_compute_forwarding_rule" "api_ilb_https" {
 
   depends_on = [google_compute_subnetwork.regional_proxy_only]
 }
+

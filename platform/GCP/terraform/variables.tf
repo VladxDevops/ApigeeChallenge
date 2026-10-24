@@ -11,11 +11,18 @@ variable "compute_project_number" {
 
 ### Infrastructure module variables:
 
+##Networking.tf: 
+
 # Networking, Region and zone for the GCP resources: 
 variable "compute_region" {
   description = "Compute region for the GCP resources."
   type        = string
 
+}
+
+variable "apigee_endpoint_attachment_host" {
+  description = "Private IP host of the Apigee endpoint attachment, used as a SAN on the ILB certificate"
+  type        = string
 }
 
 #Terraform remote state bucket name:

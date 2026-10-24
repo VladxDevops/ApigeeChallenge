@@ -17,8 +17,7 @@ const server = http.createServer((req, res) => {
     status: 'healthy',
     message: 'Hello from Cloud Run backend!',
     service: 'hello-backend',
-    timestamp,
-    headers: req.headers
+    timestamp
   }));
 });
 

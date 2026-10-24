@@ -10,6 +10,7 @@ module "infrastructure" {
   api_private_subnet_cidr            = var.api_private_subnet_cidr
   proxy_only_subnet_cidr             = var.proxy_only_subnet_cidr
   psc_nat_subnet_cidr                = var.psc_nat_subnet_cidr
+  apigee_endpoint_attachment_host = var.apigee_endpoint_attachment_host
   # Hub is created by modules/hybrid-connectivity. Its self link is only known
   # after that module plans, so it cannot also be a required input variable.
   hub_network_self_link           = module.hybrid_connectivity.hub_network_self_link

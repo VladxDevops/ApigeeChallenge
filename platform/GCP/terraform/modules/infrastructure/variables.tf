@@ -50,6 +50,11 @@ variable "psc_nat_subnet_cidr" {
   type        = string
 }
 
+variable "apigee_endpoint_attachment_host" {
+  description = "Private IP host of the Apigee endpoint attachment, used as a SAN on the ILB certificate"
+  type        = string
+}
+
 ### Cloud Run: 
 
 # Cloud Run backend variables

@@ -37,6 +37,26 @@ resource "google_project_iam_member" "apigee_sa_cloud_run_invoker" {
   member  = "serviceAccount:${google_service_account.apigee-admin-sa.email}"
 }
 
+#iam.serviceAccountTokenCreator
+resource "google_project_iam_member" "apigee_sa_service_account_token_creator" {
+  project = var.compute_project_id
+  role    = "roles/iam.serviceAccountTokenCreator"
+  member  = "serviceAccount:${var.apigee_admin_service_account_name_dev}@${var.compute_project_id}.iam.gserviceaccount.com"
+}
+
+#roles/iam.serviceAccountUser
+resource "google_project_iam_member" "apigee_sa_service_account_user" {
+  project = var.compute_project_id
+  role    = "roles/iam.serviceAccountUser"
+  member  = "serviceAccount:${google_service_account.apigee-admin-sa.email}"
+}
+
+resource "google_service_account_iam_member" "apigee_agent_token_creator" {
+  service_account_id = google_service_account.apigee-admin-sa.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:service-${var.compute_project_number}@gcp-sa-apigee.iam.gserviceaccount.com"
+}
+
 # Runtime instance. consumer_accept_list controls which projects may attach
 # a northbound PSC NEG to this instance's service attachment.
 resource "google_apigee_instance" "apigee_instance" {
