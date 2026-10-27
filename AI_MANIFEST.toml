@@ -75,6 +75,7 @@ terraform_entry = "platform/GCP/terraform/infrastructure.tf"
 deployment_runbook = "docs/operations/deployment-and-validation.md"
 internal_task_plan = "internalDocumentation/tasks.md"
 progressive_disclosure_skill = "internalDocumentation/skills/progressive-disclosure/SKILL.md"
+write_git_commit_skill = "Agents/skills/write-git-commit/SKILL.md"
 
 [indexes]
 documentation_hub = "docs/README.md"
