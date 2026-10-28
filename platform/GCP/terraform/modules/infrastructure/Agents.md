@@ -13,12 +13,13 @@ related = [
     "docs/security/security-model.md",
     "docs/TROUBLESHOOTING/postmortem.md"
 ]
-updated_by = "Grok"
-version = "1.0"
+updated_by = "ClaudeCode"
+version = "1.1"
 +++
 
 > **Parent**: [`AGENTS.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/AGENTS.md)
 > **Design**: [`network-architecture.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/docs/networking/network-architecture.md)
+> **Southbound runbook**: [`apigee-southbound-troubleshooting.md`](docs/TROUBLESHOOTING/apigee-southbound-troubleshooting.md)
 > **CIDRs**: [`addressing-plan.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/docs/networking/addressing-plan.md)
 > **Flows**: [`traffic-flows.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/docs/architecture/traffic-flows.md)
 > **Armor incident**: [`postmortem.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/docs/TROUBLESHOOTING/postmortem.md)
@@ -42,7 +43,7 @@ Run Terraform from `platform/GCP/terraform/`, never from this directory. This fo
 
 | File | Owns |
 |---|---|
-| `networking.tf` | API spoke VPC, three subnets, southbound PSC producer path, northbound regional external ALB, regional Cloud Armor policy, dev TLS fallback |
+| `networking.tf` | API spoke VPC, three subnets, southbound PSC producer path (HTTPS internal load balancer, dev self-signed certificate), northbound regional external ALB, regional Cloud Armor policy, dev TLS fallback |
 | `cloudrun.tf` | Private Cloud Run service |
 | `artifact-registry.tf` | Docker Artifact Registry repository |
 | `variables.tf` | Module inputs |
@@ -67,12 +68,20 @@ Southbound (always created):
 ```text
 Apigee consumer
   -> google_compute_service_attachment.api_psc
-  -> google_compute_forwarding_rule.api_ilb          (INTERNAL_MANAGED, port 80)
-  -> google_compute_region_target_http_proxy.api_proxy
+  -> google_compute_forwarding_rule.api_ilb_https           (INTERNAL_MANAGED, port 443)
+  -> google_compute_region_target_https_proxy.api_proxy_https
+       ssl_certificates = [google_compute_region_ssl_certificate.api_ilb]
+  -> google_compute_region_url_map (existing)
   -> google_compute_region_backend_service.api_backend
   -> google_compute_region_network_endpoint_group.cloud_run_neg   (SERVERLESS)
   -> google_cloud_run_v2_service.api_backend
 ```
+
+Note: Legacy: `google_compute_forwarding_rule.api_ilb` (port 80) and `google_compute_region_target_http_proxy.api_proxy`
+are no longer attached to the service attachment. Remove them only in a separate, planned change after
+reading `terraform plan` for replacements. Apigee target authentication requires HTTPS, so the attachment
+must keep pointing at the 443 rule.
+
 
 Northbound (created only when `local.has_valid_apigee_attachment` is true):
 
@@ -103,12 +112,20 @@ Addressing: [`addressing-plan.md`](file:///home/pochitawork/InterviewCloudProjec
 
 Southbound PSC and Cloud Run:
 
-- The producer load balancer stays `INTERNAL_MANAGED` with a serverless NEG. A passthrough internal network load balancer cannot front Cloud Run. Do not add a health check on `google_compute_region_backend_service.api_backend`; serverless NEG backends do not use one.
+- The producer load balancer stays `INTERNAL_MANAGED` with a serverless NEG and an HTTPS listener on 443. A passthrough internal network load balancer cannot front Cloud Run. Do not add a health check on `google_compute_region_backend_service.api_backend`; serverless NEG backends do not use one.`google_compute_region_backend_service.api_backend`; serverless NEG backends do not use one.
 - The NEG's `cloud_run.service` stays `var.cloud_run_service_name`, the same name as `google_cloud_run_v2_service.api_backend`.
 - The service attachment stays `connection_preference = "ACCEPT_MANUAL"` and accepts only `var.apigee_consumer_project_id`. Do not switch it to `ACCEPT_AUTOMATIC` and do not hardcode a project id or project number in the module.
-- Cloud Run ingress stays `INGRESS_TRAFFIC_INTERNAL_ONLY`. Do not set `INGRESS_TRAFFIC_ALL`.
-- `google_cloud_run_v2_service_iam_member.cloud_run_invoker` grants `roles/run.invoker` to `allUsers` so the internal load balancer can call the service. Ingress restriction is what keeps that off the internet. Removing `allUsers` without an invoker the ILB actually uses breaks southbound. Widening ingress to compensate is not allowed.
+- `google_compute_service_attachment.api_psc.target_service` stays `google_compute_forwarding_rule.api_ilb_https.id`. Changing `target_service` may force the attachment to be replaced; read the plan. A replaced attachment can drop the Apigee endpoint attachment connection and change its `host`.
+- Cloud Run ingress stays `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER`. Do not set `INGRESS_TRAFFIC_ALL`. Calls to the public `run.app` URL are blocked by this setting and return an HTML 404; this is expected.
+- Cloud Run access is by identity, not by `allUsers`. Never grant `roles/run.invoker` to `allUsers` or `allAuthenticatedUsers`, and never disable the invoker IAM check. The Apigee service account holds `roles/run.invoker` and the proxy sends a Google ID token (`GoogleIDToken` authentication, audience = the Cloud Run service URL). If a `google_cloud_run_v2_service_iam_member` for `allUsers` still exists in code, remove it after confirming the proxy works with the token. Prefer a service-scoped grant over a project-level one.
 - A dedicated runtime service account belongs to the security module and arrives through `var.cloud_run_service_account_email`. Empty means the Cloud Run default. Do not create a second service account in this module. Wiring a new value also means passing it from `infrastructure.tf`.
+
+ILB certificate (dev): 
+- The southbound ILB uses a self-signed certificate for dev: `tls_private_key.ilb_self_signed`, `tls_self_signed_cert.ilb_self_signed`, and `google_compute_region_ssl_certificate.api_ilb` (`name_prefix`, `create_before_destroy`). It is dev-only; say so in any doc that depends on it.
+- `tls_self_signed_cert.ilb_self_signed` must include the Apigee endpoint attachment host in `ip_addresses` (from `var.apigee_endpoint_attachment_host`), plus `dns_names`. Without a SAN Apigee fails with "No subject alternative names present".
+- `apigee_endpoint_attachment_host` is a variable, not a resource reference, because referencing the endpoint attachment from the certificate creates a dependency cycle. If the endpoint attachment is replaced and its host changes, update the variable and the proxy target URL, then apply.
+- Do not confuse this certificate with `tls_private_key.default_self_signed` in the northbound section; they are separate.
+
 
 Northbound:
 
@@ -116,7 +133,7 @@ Northbound:
 - The forwarding rule and its address stay `network_tier = "STANDARD"`. A regional external Application Load Balancer does not use `PREMIUM`.
 - Protocol on the northbound backend stays `HTTPS`. The listener stays `443`.
 - Keep `lifecycle.create_before_destroy` on `apigee_psc_neg` when replacing the attachment URI.
-- `tls_private_key` and `tls_certificate` are sensitive inputs. Do not add them to outputs, logs, or committed examples. A self-signed cert (`tls_private_key.default_self_signed`, CN `api.example.com`) exists only for dev when the northbound gate is open and the inputs are empty or placeholders. Say so if a change depends on it. Do not treat that cert as the submission TLS design.
+- `tls_private_key` and `tls_certificate` are sensitive inputs. Do not add them to outputs, logs, or committed examples. A self-signed cert (`tls_private_key.default_self_signed`, CN `api.example.com`) exists only for dev when the northbound gate is open and the inputs are empty or placeholders. Say so if a change depends on it. Do not treat that cert as the submission TLS design. That certificate belongs to the northbound ALB only; the southbound ILB uses its own (see "ILB certificate (dev)").
 
 Cloud Armor in this module:
 
@@ -124,20 +141,22 @@ Cloud Armor in this module:
 - Put rules in the `rules` blocks of that resource. Do not add `google_compute_region_security_policy_rule`. Standalone rule resources made apply fail on refresh; see [`postmortem.md`](file:///home/pochitawork/InterviewCloudProjects/ApigeeChallenge/docs/TROUBLESHOOTING/postmortem.md).
 - The inline deny of `9.9.9.9/32` is an example. Replacing it is a security-model change, not a drive-by cleanup.
 
-Names already applied (`api-spoke-vpc`, `api-private-us-south1`, `api-proxy-only-us-south1`, `api-psc-nat-us-south1`, and the load-balancer names in `networking.tf`) are live identifiers. Renaming them replaces infrastructure. Do not rename for style. New resources take `var.compute_region` and `var.compute_project_id`. The subnet names contain `us-south1`; changing region without a planned rename leaves those names behind.
+Names already applied (`api-spoke-vpc`, `api-private-us-south1`, `api-proxy-only-us-south1`, `api-psc-nat-us-south1`, and the load-balancer names in `networking.tf`) are live identifiers. Renaming them replaces infrastructure. Do not rename for style. New resources take `var.compute_region` and `var.compute_project_id`. The subnet names contain `us-south1`; changing region without a planned rename leaves those names behind. `api-ilb-https-forwarding-rule`, `api-backend-https-proxy`, and the `api-ilb-cert-` certificate name prefix are now live. The old port-80 load-balancer names remain until the planned cleanup.
 
 `google_artifact_registry_repository.helo_apigee_repo` ignores label changes. Leave that lifecycle rule in place unless the user wants Terraform to adopt labels.
 
 
 ## How to edit
 
-- Add a variable in `variables.tf` with a description. If it has no default, pass it from `platform/GCP/terraform/infrastructure.tf` and declare it on the root module. Root and module variables drift today (`cloud_run_*` defaults exist only on the module). Do not add a third copy.
+- Add a variable in `variables.tf` with a description. If it has no default, pass it from `platform/GCP/terraform/infrastructure.tf` and declare it on the root module. Root and module variables drift today (`cloud_run_*` defaults exist only on the module). Do not add a third copy. Variables on this path: `apigee_consumer_project_id`, `apigee_northbound_service_attachment`, `apigee_endpoint_attachment_host`. Each must be declared in the module `variables.tf`, declared on the root, passed from `infrastructure.tf`, and set in `dev.tfvars`.
 - Keep environment values in tfvars. This module does not read tfvars itself.
 - Do not add firewall resources here. If a path needs a firewall change, edit `modules/security/` and keep using the network id output.
 - Do not provision the Apigee runtime, a customer `/22`, or a peered Apigee network from this module.
 - Do not add a Serverless VPC Access connector unless Cloud Run must open its own connections into the VPC. The current path is ILB to serverless NEG, which does not need one. The addressing plan reserves `10.80.0.32/28` for that connector; creating it is an addressing change.
 - A new output that another module needs is declared next to the existing outputs and wired at the root. Cloud Run and Artifact Registry outputs stay in their own files.
-
+- Do not widen access to fix an auth error (`allUsers`, `INGRESS_TRAFFIC_ALL`, disabling the invoker check). Fix the identity instead; see the runbook.
+- Do not point a proxy target at the `run.app` URL or at the northbound ALB address. The target is the endpoint attachment host.
+- The IAM roles for the APIgee service accounts are declared in the module/apigee. 
 
 ## Checks
 
@@ -148,8 +167,13 @@ terraform fmt -recursive
 terraform validate
 ```
 
-Run `terraform plan` when credentials and the existing backend are available. Read the plan for subnet, forwarding-rule, service-attachment, and Cloud Run replacements before telling the user the change is safe.
+Run `terraform plan` when credentials and the existing backend are available. Read the plan for subnet, forwarding-rule, service-attachment, and Cloud Run replacements before telling the user the change is safe. A replacement of the service attachment or the Apigee endpoint attachment may change the endpoint attachment `host`. After any such apply, re-read the host and compare it with `apigee_endpoint_attachment_host` and the proxy `default.xml`.
 
 `terraform apply` and `terraform destroy` need an explicit user authorization that names the environment. Do not apply from this module directory.
 
 After a change that alters a flow, a CIDR, or which policy is attached, update the matching doc under `docs/networking/`, `docs/architecture/traffic-flows.md`, or `docs/security/security-model.md`, plus `changelog.md`.
+
+After a southbound change, verify:
+1. `curl -vk --resolve api.example.com:443:<northbound ALB IP> https://api.example.com/hello` returns 200.
+2. The Cloud Run logs show the request line.
+3. The endpoint attachment is `ACTIVE` and `ACCEPTED`.

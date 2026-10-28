@@ -25,6 +25,27 @@ version = "1.6"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+## 2026-10-28 — Reconcile completed tasks in internal planning documentation
+
+**What changed**:
+- Audited all open tasks and to-dos in `internalDocumentation/Planning/` against repository code.
+- In `internalDocumentation/Planning/tasks.md`:
+  - Removed duplicate un-checked VPC heading line 249.
+  - Marked hello-backend container build and invoker binding tasks completed (`[x]`).
+  - Marked Cloud Run ingress mode, VPC access connector, public API DNS resources, Apigee service attachment documentation, and stale note reconciliation completed (`[x]`).
+  - Preserved live validation environment blockers as open (`- [ ]`).
+
+**Why**:
+- Stale unchecked boxes in `tasks.md` did not reflect that these deliverables had already been statically implemented in Terraform and documented.
+
+**Affected area**:
+- Project task tracking documentation (`internalDocumentation/Planning/tasks.md`).
+
+**Validation performed**:
+- Audited codebase implementation in `modules/infrastructure/cloudrun.tf`, `dns.tf`, `networking.tf`, `modules/security/main.tf`, and `modules/apigee/README.md`.
+- Verified remaining unchecked tasks are strictly live runtime gates in `checklist.md`, `plan.md`, and `tasks.md`.
+
+
 ## 2026-10-22 — Attach the dedicated Cloud Run runtime identity
 
 **What changed**:

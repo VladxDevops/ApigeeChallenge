@@ -25,6 +25,30 @@ version = "1.4"
 - When NOT to Retrieve: When looking for current architecture state (use docs/architecture/), or for the changelog (use changelog.md).
 -->
 
+## Session: Planning tasks reconciliation
+**Date**: 2026-10-28
+**Agent**: Antigravity AI
+**Objective**: Audit uncompleted tasks and to-dos in `internalDocumentation/Planning/` directory, verify existing implementation in code/docs without adding new code, and mark completed tasks as completed.
+
+### Summary
+- Audited `checklist.md`, `plan.md`, and `tasks.md`.
+- Identified 12 completed tasks in `tasks.md` whose static implementation already exists in the repository:
+  - VPC and subnet declarations (`modules/infrastructure/networking.tf`).
+  - Container image input wiring (`infrastructure.tf` & `dev.tfvars`).
+  - Cloud Build IAM permissions (`roles/artifactregistry.writer`, `roles/logging.logWriter`).
+  - Build order and artifact registry dependencies (`checklist.md`, `changelog.md`).
+  - Cloud Run invoker binding (`modules/infrastructure/networking.tf`).
+  - Cloud Run ingress mode set to `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER` (`modules/infrastructure/cloudrun.tf`).
+  - Serverless private egress via `google_vpc_access_connector` (`modules/infrastructure/cloudrun.tf`).
+  - Terraform-managed DNS resources for `api.example.com` (`modules/infrastructure/dns.tf`).
+  - Apigee service attachment documentation and contract verification (`modules/apigee/README.md`, `Agents.md`).
+- Marked all 12 items as completed (`[x]`).
+- Preserved all live environment apply and traffic validation tasks as open (`- [ ]`) across `checklist.md`, `plan.md`, and `tasks.md` due to disabled GCP project billing.
+
+### Validation Performed
+- Ran automated grep checks across `internalDocumentation/Planning/` to confirm all remaining unchecked boxes correspond strictly to live validation blockers.
+- Confirmed zero application or Terraform code was modified.
+
 ## Session: Cloud Run runtime identity attachment
 **Date**: 2026-10-22
 **Agent**: Codex
