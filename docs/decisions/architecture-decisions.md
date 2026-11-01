@@ -84,7 +84,7 @@ This document records the major decisions needed to defend the proposed architec
 | Direct route from Apigee to private CIDRs | Not allowed by challenge | Unsupported assumption | Low, invalid | Rejected |
 | Public backend URL with IP restrictions | Exposes backend to Internet path | Avoids PSC but violates spirit of private backend | Low | Rejected |
 
-**Consequence:** Producer-side load balancing and a PSC NAT subnet are required before Apigee endpoint attachments can become active.
+**Consequence:** Producer-side load balancing and a PSC NAT subnet are required before Apigee endpoint attachments can become active. Dynamic SNAT addresses (`nat-ingress-ip-*`) allocated by GCP inside this subnet operate on `PREMIUM` network tier (platform invariant for internal VPC IPs) and cannot be manually reserved via `google_compute_address`.
 
 
 ## Decision 5 - Cloud Application Runtime
@@ -128,7 +128,7 @@ This document records the major decisions needed to defend the proposed architec
 
 **Consequence:**
 - Regional Proxy-Only Subnet is set to `10.80.0.64/26` (64 IPs), respecting GCP's strict platform minimum rule (prefix lengths longer than `/26` are rejected by GCP APIs).
-- PSC NAT Subnet is set to `10.80.0.16/29` (8 IPs, 4 usable), which is the exact GCP platform minimum and sufficient for Apigee's southbound endpoint attachments.
+- PSC NAT Subnet is set to `10.80.0.16/29` (8 IPs, 4 usable), which is the exact GCP platform minimum and sufficient for Apigee's southbound endpoint attachments. Addresses allocated within this subnet (`nat-ingress-ip-*`) are ephemeral, managed by the PSC service attachment controller, use GCP's platform-mandated `PREMIUM` tier for internal traffic, and cannot be statically reserved in Terraform.
 - API Private Subnet is set to `10.80.0.0/28` (16 IPs, 12 usable), safely accommodating ILB forwarding rules and backends without exhaustion.
 - The entire active API spoke fits inside `10.80.0.0/25`, allowing the organization to allocate a single `/24` rather than three. Existing enterprise ranges remain labelled as assumptions.
 

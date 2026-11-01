@@ -726,3 +726,40 @@ Now am I able to terraform apply the infra module.
 - Reviewed stale references and updated the canonical documentation to match the deployed design.
 
 ---
+
+## 2026-11-01 — Align northbound ALB addresses with regional external STANDARD tier
+
+**What changed**:
+- Confirmed the northbound regional external ALB path keeps `network_tier = "STANDARD"` on both the reserved static IP and the forwarding rule.
+- Documented the platform rule that regional external Application Load Balancers do not use `PREMIUM` tiering.
+- Recorded the live validation note that any stale Premium entries in the console must be treated as old/manual allocations rather than the Terraform design.
+
+**Why**:
+- The console showed three Premium-tier addresses for the current external ingress path, but the active regional external ALB design requires `STANDARD`.
+
+**Affected area**:
+- `platform/GCP/terraform/modules/infrastructure/networking.tf`
+- `docs/networking/addressing-plan.md`
+
+**Validation performed**:
+- Reviewed the Terraform declaration for the northbound external address and load-balancer forwarding rule and confirmed they are configured as `STANDARD`.
+
+---
+
+## 2026-11-01 — Clarify PSC NAT IP tiering, /29 sizing, and GCP address reservation constraints
+
+**What changed**:
+- Verified and documented that internal IP addresses in GCP (such as `nat-ingress-ip-*` in `api-psc-nat-us-south1`) strictly operate on the `PREMIUM` network tier and cannot be configured with `STANDARD` tier (which GCP limits strictly to external IPv4 traffic).
+- Documented the GCP platform invariant that manual address reservation (`google_compute_address`) is forbidden in subnets with `purpose = "PRIVATE_SERVICE_CONNECT"`.
+- Verified that the `api-psc-nat-us-south1` subnet is already declared as a `/29` (`10.80.0.16/29`) across Terraform variables, network definitions, and the addressing plan.
+- Updated `docs/networking/addressing-plan.md`, `docs/networking/southbound-psc.md`, `docs/decisions/architecture-decisions.md`, and `platform/GCP/terraform/modules/infrastructure/Agents.md`.
+
+**Why**:
+- Investigated the presence of `nat-ingress-ip-...` (10.80.0.18) showing as `PREMIUM` in `gcloud compute addresses list` and clarified why it cannot be manually declared as a `STANDARD` tier address in Terraform.
+
+**Affected area**:
+- Network documentation (`docs/networking/addressing-plan.md`, `docs/networking/southbound-psc.md`), architectural decisions (`docs/decisions/architecture-decisions.md`), and infrastructure developer instructions (`Agents.md`).
+
+**Validation performed**:
+- Executed GCP API calls verifying that `gcloud compute addresses create` rejects `--network-tier=STANDARD` for internal addresses and rejects address reservation in `PRIVATE_SERVICE_CONNECT` subnets.
+- Verified Terraform syntax, formatting, and variables.

@@ -112,6 +112,7 @@ Addressing: [`addressing-plan.md`](file:///home/pochitawork/InterviewCloudProjec
 
 Southbound PSC and Cloud Run:
 
+- The PSC NAT subnet `api-psc-nat-us-south1` is sized at `/29` (`var.psc_nat_subnet_cidr`). Do not attempt to declare a standalone `google_compute_address` inside this subnet or assign it `network_tier = "STANDARD"`. GCP forbids address reservation in `PRIVATE_SERVICE_CONNECT` subnets and enforces `PREMIUM` tier on all internal VPC addresses. The `nat-ingress-ip-*` address is dynamically allocated by GCP's PSC SDN controller when Apigee connects.
 - The producer load balancer stays `INTERNAL_MANAGED` with a serverless NEG and an HTTPS listener on 443. A passthrough internal network load balancer cannot front Cloud Run. Do not add a health check on `google_compute_region_backend_service.api_backend`; serverless NEG backends do not use one.`google_compute_region_backend_service.api_backend`; serverless NEG backends do not use one.
 - The NEG's `cloud_run.service` stays `var.cloud_run_service_name`, the same name as `google_cloud_run_v2_service.api_backend`.
 - The service attachment stays `connection_preference = "ACCEPT_MANUAL"` and accepts only `var.apigee_consumer_project_id`. Do not switch it to `ACCEPT_AUTOMATIC` and do not hardcode a project id or project number in the module.

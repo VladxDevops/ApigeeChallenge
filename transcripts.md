@@ -584,3 +584,54 @@ The user reported a set of Terraform validation errors in `platform/GCP/terrafor
 - The canonical ingress statement for the project is `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER`, while the backend remains private-only and is not exposed to the internet.
 
 ---
+
+## Session: Regional external ALB tier validation
+**Date**: 2026-11-01
+**Agent**: Copilot
+**Objective**: Verify the northbound regional external ALB IP path is configured to use the required `STANDARD` tier and document the finding.
+
+### Summary
+- Confirmed the Terraform path for the northbound external ALB uses `network_tier = "STANDARD"` for the static IP and forwarding rule.
+- Verified that regional external Application Load Balancers do not use `PREMIUM`, and any Premium entries seen in the console are stale or manual allocations rather than the design intent.
+- Recorded the requirement in the addressing plan and changelog for future validation and operational clarity.
+
+### Files changed
+- `platform/GCP/terraform/modules/infrastructure/networking.tf`
+- `docs/networking/addressing-plan.md`
+- `changelog.md`
+- `transcripts.md`
+
+### Validation
+- Read the Terraform resource declarations and confirmed the `STANDARD` tier is present in the correct external ALB resources.
+
+### Outstanding
+- If the console still shows Premium entries, they should be checked as legacy/manual allocations and replaced if they are still attached to the active load balancer path.
+
+---
+
+## Session: PSC NAT IP tiering, /29 sizing, and GCP address reservation constraints
+**Date**: 2026-11-01
+**Agent**: Antigravity AI
+**Objective**: Investigate the IP address used by `api-psc-nat-us-south1` showing as `PREMIUM` tier in GCP, evaluate declaring it as `network_tier = "STANDARD"` with `/29` in Terraform, update documentation, and prepare a commit message without committing.
+
+### Summary
+- Discovered that the IP `nat-ingress-ip-1550-5643775024982265201` (10.80.0.18) in `api-psc-nat-us-south1` is an ephemeral internal SNAT IP created automatically by GCP when Apigee connects to `google_compute_service_attachment.api_psc`.
+- Tested and verified against GCP API that internal IP addresses cannot use `network_tier = "STANDARD"` (`Invalid value for field 'resource.networkTier': 'STANDARD'. Only allow premium tier for internal address.`).
+- Tested and verified against GCP API that address reservation is forbidden in `PRIVATE_SERVICE_CONNECT` subnets (`PRIVATE_SERVICE_CONNECT subnetwork cannot be used for address reservation`).
+- Verified that `api-psc-nat-us-south1` is already declared as a `/29` (`10.80.0.16/29`) in Terraform via `psc_nat_subnet_cidr`.
+- Updated canonical documentation across the addressing plan, Southbound PSC guide, ADRs, and infrastructure guidelines.
+
+### Files changed
+- `docs/networking/addressing-plan.md`
+- `docs/networking/southbound-psc.md`
+- `docs/decisions/architecture-decisions.md`
+- `platform/GCP/terraform/modules/infrastructure/Agents.md`
+- `changelog.md`
+- `transcripts.md`
+
+### Validation
+- Validated GCP Compute API errors via CLI.
+- Verified Terraform formatting and syntax.
+
+### Outstanding
+- None. Ready for review and commit by the user.

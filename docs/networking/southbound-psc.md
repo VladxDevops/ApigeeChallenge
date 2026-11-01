@@ -29,6 +29,10 @@ Cloud Run Backend Service (`INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER`)
    - Location: `us-south1`
    - NAT Subnets: `10.80.0.16/29` (`psc_nat_subnet`)
    - Connection Preference: `ACCEPT_MANUAL` (restricted to authorized projects)
+   - **NAT Ingress IP Lifecycle**: When Apigee connects an endpoint attachment, GCP automatically allocates dynamic internal SNAT IP addresses (e.g., `10.80.0.18`, labeled `nat-ingress-ip-*`) from `api-psc-nat-us-south1`. These addresses:
+     - Always use `PREMIUM` network tier (GCP platform invariant: all internal VPC IPs are `PREMIUM`; setting `STANDARD` is rejected by GCP API).
+     - Cannot be manually reserved via `google_compute_address` (GCP API rejects reservations in subnets with `purpose = PRIVATE_SERVICE_CONNECT`).
+     - Are fully controlled in Terraform through `google_compute_subnetwork.psc_nat` and `google_compute_service_attachment.api_psc`.
 
 2. **Internal Load Balancer (ILB)**:
    - Scheme: `INTERNAL_MANAGED`

@@ -78,9 +78,23 @@ The challenge does not provide the organization's real IP inventory. The ranges 
 
 ---
 
-## Apigee Runtime Addressing
+## Apigee Runtime Addressing & Network Service Tiers
 
 For the selected non-VPC-peering model, the design does not allocate organization-owned `/22` or `/28` ranges to the Apigee runtime. Apigee remains provider-managed and outside the customer VPC boundary.
+
+### Northbound Public Ingress vs. Southbound Private Ingress Tiers
+
+| Traffic Path | Component | IP Type | Allowed / Required Tier | Platform Constraint & Enforcement |
+|---|---|---|---|---|
+| **Northbound Ingress** | Regional External ALB (`apigee-northbound-external-ip`) | `EXTERNAL` | `STANDARD` | **GCP Regional External ALB platform requirement:** Regional external Application Load Balancers mandate `network_tier = "STANDARD"`. A `PREMIUM` tier is rejected for regional external ALBs. |
+| **Southbound Egress/Ingress** | PSC Service Attachment NAT (`nat-ingress-ip-*`) | `INTERNAL` | `PREMIUM` | **GCP Internal IP platform requirement:** Google Cloud strictly enforces that all internal VPC IP addresses operate on `PREMIUM` tier. Setting `network_tier = "STANDARD"` is rejected with `Invalid value for field 'resource.networkTier': 'STANDARD'. Only allow premium tier for internal address.` |
+
+### PSC NAT Subnet (`api-psc-nat-us-south1`) & Ephemeral NAT IPs
+
+The PSC NAT subnet is allocated as `10.80.0.16/29` (8 total IPs, 4 usable):
+- **Dynamic SDN Allocation**: When Apigee connects an endpoint attachment to `google_compute_service_attachment.api_psc`, GCP's PSC SDN dynamically allocates internal IP addresses (e.g. `10.80.0.18`, labeled `nat-ingress-ip-*`) from this `/29` subnet pool to perform Source NAT (SNAT) before delivering requests to the internal load balancer.
+- **No Manual Reservation Permitted**: Manual address reservation via `google_compute_address` inside subnets with `purpose = "PRIVATE_SERVICE_CONNECT"` is explicitly forbidden by GCP API (`PRIVATE_SERVICE_CONNECT subnetwork cannot be used for address reservation`). 
+- **Terraform Source of Truth**: The Terraform configuration declares the `/29` pool through `google_compute_subnetwork.psc_nat` (`ip_cidr_range = var.psc_nat_subnet_cidr`) and attaches it to `google_compute_service_attachment.api_psc` via `nat_subnets = [google_compute_subnetwork.psc_nat.id]`. No standalone `google_compute_address` resource can or should be created for this internal NAT address.
 
 Southbound endpoint attachments may return a host IP used by Apigee proxies to reach the service behind a customer service attachment. That IP is an Apigee-side endpoint value and must not be treated as a customer subnet allocation.
 
