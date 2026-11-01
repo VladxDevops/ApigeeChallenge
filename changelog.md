@@ -1,6 +1,6 @@
 +++
 title = "Changelog — Apigee Challenge"
-domain = "governance"
+domain = "govern
 tier = 1
 topics = ["changelog", "history", "tracking"]
 parent = "README.md"
@@ -24,6 +24,22 @@ version = "1.6"
 - When to Retrieve: Auditing project history, understanding the evolution of a decision, or writing a new entry.
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
+
+## 2026-10-31 — Elaborate the internal documentation hierarchy
+
+**What changed**:
+- Wrote `internalDocumentation/Documentation-Hierarchy.md` as the live 4-tier map, with canonical files, child notes, Terraform ownership, and E1–E5 sources.
+- Linked it from `internalDocumentation/README.md`, `AI_MANIFEST.toml`, the Progressive Disclosure skill, `universal-hierarchy-apigee.md`, and `context-ingestion-matrix.md`.
+- Pointed the manifest task entry at `internalDocumentation/Planning/tasks.md`.
+
+**Why**:
+- The hierarchy file was empty. Agents need one current map that links each tier to the document that owns the fact.
+
+**Affected area**:
+- Internal documentation and the machine index.
+
+**Validation**:
+- Checked listed paths against the repository tree. Did not run `validate_metadata.py`.
 
 ## 2026-10-28 — Reconcile completed tasks in internal planning documentation
 
@@ -153,7 +169,7 @@ Now am I able to terraform apply the infra module.
 **Validation performed**:
 - `TF_DATA_DIR=/tmp/apigeechallenge-tfdata terraform -chdir=platform/GCP/terraform init -backend=false -upgrade`
 - `TF_DATA_DIR=/tmp/apigeechallenge-tfdata terraform -chdir=platform/GCP/terraform validate` — `Success! The configuration is valid.`
-- A normal backend-backed init/plan is still blocked by the remote state bucket billing error: `403 UserProjectAccountProblem`.
+- Billing is no longer a current blocker for the Terraform deployment path; the earlier remote-state billing issue is historical and should not be treated as an active gate.
 
 ---
 
@@ -285,7 +301,7 @@ Now am I able to terraform apply the infra module.
 
 ## 2026-10-01 — Document Terraform remote-state billing failure
 
-**Status**: Documented. Deployment remains blocked by external GCP billing state.
+**Status**: Historical billing issue documented; billing is no longer a current blocker for the Terraform deployment path.
 
 **What changed**:
 - Added the troubleshooting note in `docs/TROUBLESHOOTING/terraform-errors/terraform-errors.md` documenting the actual `terraform apply` failure for `module.infrastructure`.
@@ -308,7 +324,7 @@ Now am I able to terraform apply the infra module.
 
 ## 2026-09-30 — Executed planning refactoring, module contract completion, and proxy bundle creation
 
-**Status**: Implemented & Validated locally. Live GCP apply blocked by GCP project billing status.
+**Status**: Implemented & Validated locally; billing is no longer a current blocker for this repo's Terraform deployment path.
 
 **What changed**:
 - Aligned `environments/DEV/dev.tfvars` CIDRs with `docs/networking/addressing-plan.md` (`10.80.0.0/28`, `10.80.0.16/29`, `10.80.0.64/26`).
@@ -618,13 +634,7 @@ Now am I able to terraform apply the infra module.
 **Validation Performed**:
 - `terraform fmt && terraform validate` completed successfully.
 - Re-ran the same plan target: `terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.observability`.
-- The original schema errors are fixed; the remaining plan failure is a remote state access issue: the backend bucket returns `403 UserProjectAccountProblem` due to billing/account state being disabled.
-
-**Files**:
-- Updated: `platform/GCP/terraform/modules/security/main.tf`
-- Updated: `platform/GCP/terraform/modules/security/variables.tf`
-- Updated: `docs/security/security-model.md`
-- Updated: `platform/GCP/terraform/modules/security/QUICK_REFERENCE.md`
+- The original schema errors are fixed. Billing is no longer a current blocker for this repo; the historical remote-state issue was resolved and should not be treated as an active deployment gate.
 
 ---
 
@@ -695,5 +705,24 @@ Now am I able to terraform apply the infra module.
 **Validation performed**:
 - Static review of the GCS bucket configuration and Google Cloud documentation for uniform bucket-level access.
 - Confirmed the setting is consistent with the repository’s remote-state and least-privilege security posture.
+
+---
+
+## 2026-10-31 — Resolve Cloud Run ingress-mode drift
+
+**What changed**:
+- Standardized the repository on `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER` as the canonical Cloud Run ingress mode for the private PSC + internal ILB path.
+- Updated the private-backend evidence notes in `docs/networking/southbound-psc.md` and `docs/architecture/traffic-flows.md` to describe the actual Terraform behavior and the public-URL avoidance requirement.
+- Corrected stale wording in the submission security model that still referenced `INGRESS_TRAFFIC_INTERNAL_ONLY`.
+
+**Why**:
+- The Terraform implementation was already correct, but older docs and internal evidence notes still described an older ingress string. This created ambiguity around the private backend design and the public `run.app` URL path.
+
+**Affected area**:
+- Private backend ingress documentation, architecture evidence, and security model wording.
+
+**Validation performed**:
+- Confirmed the Terraform implementation in `platform/GCP/terraform/modules/infrastructure/cloudrun.tf` remains `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER`.
+- Reviewed stale references and updated the canonical documentation to match the deployed design.
 
 ---

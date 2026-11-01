@@ -23,5 +23,6 @@ The IAM model enforces least privilege across deployment pipelines, service-to-s
    - Cloud Run runtime SA is scoped strictly to reading secrets and emitting observability metrics/logs.
 
 3. **Service-to-Service Authorization**:
-   - Cloud Run ingress is restricted to `INTERNAL_ONLY`.
-   - Invocation via ILB/PSC requires explicit IAM invoker permissions.
+   - Cloud Run ingress is configured as `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER` in Terraform to match the private PSC + internal-ILB production path.
+   - The backend is intentionally private-only and is not exposed through the public `run.app` URL.
+   - Invocation via the ILB/PSC path requires explicit IAM invoker permissions (`roles/run.invoker`) on the Apigee service account.

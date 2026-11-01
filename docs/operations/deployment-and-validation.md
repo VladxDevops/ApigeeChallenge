@@ -5,12 +5,12 @@ This document defines the planned deployment workflow and the evidence to collec
 ## Preconditions
 
 - Google Cloud project exists.
-- Billing is enabled.
 - Terraform deployer identity exists.
 - Remote state bucket is bootstrapped or can be created by an approved bootstrap run.
 - Apigee entitlement and organization type are confirmed.
 - Real CIDR inventory is reviewed for overlap.
 - `us-south1` quotas are available.
+- Note: billing is no longer a blocker for the current Terraform deployment and validation path. Earlier remote-state billing issues were historical and should not be treated as a live precondition for this repository.
 
 ## Terraform Workflow
 

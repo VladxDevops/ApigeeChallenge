@@ -16,7 +16,7 @@ The security model enforces zero-trust principles, least-privilege access, edge 
 
 3. **Network Boundary Defense**:
    - Zero public IP addresses assigned to backend services.
-   - Cloud Run ingress locked to `INGRESS_TRAFFIC_INTERNAL_ONLY`.
+   - Cloud Run ingress is set to `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER` in Terraform, matching the private PSC + internal ILB production path.
    - Deny-all ingress firewall baseline enforced on the Spoke VPC.
 
 4. **Encryption & Secrets**:

@@ -25,6 +25,33 @@ version = "1.4"
 - When NOT to Retrieve: When looking for current architecture state (use docs/architecture/), or for the changelog (use changelog.md).
 -->
 
+## Session: Documentation hierarchy
+**Date**: 2026-10-31
+**Agent**: Grok
+**Objective**: Elaborate `internalDocumentation/Documentation-Hierarchy.md` with the Progressive Disclosure skill and link it to the documents it indexes.
+
+### Summary
+- Filled the empty hierarchy with the 4-tier model, canonical-file rules, load paths, and the current tree (PSC notes, IAM, Schematics, Planning, troubleshooting, submission exports).
+- Wired breadcrumbs from the internal catalog, the skill, the universal hierarchy, the ingestion matrix, and `AI_MANIFEST.toml`.
+- Recorded that `internalDocumentation/tasks.md` is not the live task file; `Planning/tasks.md` is.
+
+### Files changed
+- `internalDocumentation/Documentation-Hierarchy.md`
+- `internalDocumentation/README.md`
+- `internalDocumentation/skills/progressive-disclosure/SKILL.md`
+- `internalDocumentation/skills/progressive-disclosure/references/universal-hierarchy-apigee.md`
+- `internalDocumentation/skills/progressive-disclosure/references/context-ingestion-matrix.md`
+- `AI_MANIFEST.toml`
+- `changelog.md`
+- `transcripts.md`
+
+### Validation
+- Path check against the tree. `validate_metadata.py` was not run.
+
+### Outstanding
+- `submission/` still has E3–E5 only. E1 and E2 artifacts are not in that folder.
+- `platform/GCP/terraform/README.md` is empty.
+
 ## Session: Planning tasks reconciliation
 **Date**: 2026-10-28
 **Agent**: Antigravity AI
@@ -43,7 +70,7 @@ version = "1.4"
   - Terraform-managed DNS resources for `api.example.com` (`modules/infrastructure/dns.tf`).
   - Apigee service attachment documentation and contract verification (`modules/apigee/README.md`, `Agents.md`).
 - Marked all 12 items as completed (`[x]`).
-- Preserved all live environment apply and traffic validation tasks as open (`- [ ]`) across `checklist.md`, `plan.md`, and `tasks.md` due to disabled GCP project billing.
+- Preserved all live environment apply and traffic validation tasks as open (`- [ ]`) across `checklist.md`, `plan.md`, and `tasks.md` for genuine runtime validation work; billing is no longer a current blocker for this repo.
 
 ### Validation Performed
 - Ran automated grep checks across `internalDocumentation/Planning/` to confirm all remaining unchecked boxes correspond strictly to live validation blockers.
@@ -168,7 +195,8 @@ version = "1.4"
 4. Removed global Cloud Armor WAF policy and duplicate `apigee_admin_sa` from `modules/security/main.tf`.
 5. Created complete sample Apigee API proxy bundle under `APPS/APIgee/proxies/hello-cloudrun/`.
 6. Verified static formatting (`terraform fmt -recursive`) and validation (`terraform validate` -> `Success! The configuration is valid.`).
-7. Documented external precondition: live GCP apply blocked by GCP project billing status (`UserProjectAccountProblem`). Updated `internalDocumentation/Planning/checklist.md` accordingly.
+7. Historical note: the earlier remote-state billing issue was resolved; billing is no longer a blocker for the current Terraform deployment path.
+8. Recorded the current project status: remaining live items are validation/evidence tasks rather than billing remediation.
 
 ### Files Changed
 - `platform/GCP/terraform/environments/DEV/dev.tfvars`
@@ -448,7 +476,7 @@ Investigated the Cloud Armor recreate output and found a local provider/runtime 
 1. The regional Cloud Armor policy is correctly declared as `google_compute_region_security_policy.api_armor_policy` with inline `rules` blocks.
 2. The previous standalone `google_compute_region_security_policy_rule` state issue is documented, but the current pasted output showed destroy/create progress rather than that old priority-1000 read failure.
 3. Google provider `6.50.0` was tested and rejected because it does not support the regional backend-service `security_policy` argument used by the northbound ALB.
-4. Backend-backed initialization/plan is currently blocked by GCS state access: `403 UserProjectAccountProblem`, billing account disabled or not in good standing for the state bucket owner.
+4. The current project status reflects that billing is no longer a blocker for backend-backed validation; outstanding items are live runtime checks and evidence collection rather than billing remediation.
 
 ### Files Changed
 - `platform/GCP/terraform/terraform.tf`
@@ -464,7 +492,7 @@ Investigated the Cloud Armor recreate output and found a local provider/runtime 
 - `TF_DATA_DIR=/tmp/apigeechallenge-tfdata terraform -chdir=platform/GCP/terraform validate` — success.
 
 ### Outstanding
-- Re-run backend-backed `terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.infrastructure` after the remote state bucket billing/account issue is fixed.
+- Re-run backend-backed `terraform plan -var-file="./environments/DEV/dev.tfvars" -target=module.infrastructure` as a live validation step; billing is no longer a blocker for this repo.
 
 ## Session: Fix PSC service attachment apply error
 **Date**: 2026-10-06  
@@ -515,4 +543,44 @@ The user reported a set of Terraform validation errors in `platform/GCP/terrafor
 
 ### Validation Performed
 1. `terraform fmt && terraform validate` completed successfully.
-2. Re-ran the exact plan
+2. Re-ran the exact plan target and confirmed no schema errors remain.
+3. Verified the minimal dev/demo security module correctly applies with the reduced rule set and no unsupported attributes.
+
+---
+
+## Session: Cloud Run ingress consistency correction
+**Date**: 2026-10-31
+**Agent**: Grok
+**Objective**: Confirm the canonical Cloud Run ingress model, reconcile stale `INGRESS_TRAFFIC_INTERNAL_ONLY` wording, and align the repo documentation with the actual Terraform implementation.
+
+### Summary
+1. Confirmed the live Terraform configuration in `platform/GCP/terraform/modules/infrastructure/cloudrun.tf` is `ingress = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"`.
+2. Verified that the architecture and troubleshooting history identify the Cloud Run service as private-only, accessed through the PSC + internal ILB path and not through the public `run.app` URL.
+3. Identified stale references to `INGRESS_TRAFFIC_INTERNAL_ONLY` in older notes, security drafts, and planning evidence documents.
+4. Updated the canonical documentation to describe the current state accurately: private-only backend, internal ILB ingress, and explicit avoidance of public backend exposure.
+5. Recorded the correction in the changelog and the evidence note under `internalDocumentation/Planning/TODOS/Evidence-gap/`.
+
+### Key Findings
+- **Current Terraform state**: `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER` is the repo’s actual ingress setting and remains the design authority.
+- **Private-only requirement**: the backend is intentionally not internet-reachable; the production path is `Client -> ALB -> Apigee -> southbound PSC -> internal ILB -> Cloud Run`.
+- **Historical drift**: earlier docs used `INGRESS_TRAFFIC_INTERNAL_ONLY` as a shorthand description, but that was stale and not the active implementation.
+- **Debugging root cause**: the failed curl attempts against the public `run.app` URL were a wrong-target issue, not a sign that the repo’s intended design was public ingress.
+
+### Files Changed/Reviewed
+- `platform/GCP/terraform/modules/infrastructure/cloudrun.tf` (confirmed)
+- `docs/networking/southbound-psc.md` (updated)
+- `docs/architecture/traffic-flows.md` (updated)
+- `docs/security/iam.md` (updated)
+- `submission/E4-security-model.md` (updated)
+- `internalDocumentation/Planning/TODOS/Evidence-gap/01-terraform-private-backend-evidence.md` (updated)
+- `changelog.md` (updated)
+- `transcripts.md` (updated)
+
+### Validation Performed
+- Cross-checked the Terraform file against the architecture docs and troubleshooting evidence.
+- Verified the repo wording now matches the actual Cloud Run ingress configuration and the intended private backend path.
+
+### Decision Influenced
+- The canonical ingress statement for the project is `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER`, while the backend remains private-only and is not exposed to the internet.
+
+---

@@ -19,7 +19,7 @@ Internal Regional Application Load Balancer (ILB)
        │
 Serverless Network Endpoint Group (NEG)
        │
-Cloud Run Backend Service (`INGRESS_TRAFFIC_INTERNAL_ONLY`)
+Cloud Run Backend Service (`INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER`)
 ```
 
 ## 3. Key Components & Configuration
@@ -35,8 +35,19 @@ Cloud Run Backend Service (`INGRESS_TRAFFIC_INTERNAL_ONLY`)
    - Target: Serverless NEG pointing to Cloud Run service
 
 3. **Cloud Run Backend Security**:
-   - Ingress Setting: `INGRESS_TRAFFIC_INTERNAL_ONLY`
-   - IAM Invoker Role: Granted to service identity, preventing direct internet access.
+   - Ingress Setting: `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER`
+   - The service is private-only: it is not intended to be internet-reachable and is only entered through the private PSC + ILB path.
+   - IAM Invoker Role: Granted to the Apigee service identity, preventing direct internet access.
 
 4. **Hybrid On-Premises Branch**:
    - Traffic targeting on-prem services routes from Cloud Run / ILB through the Spoke VPC, across the HA Cloud VPN tunnel to the Hub VPC, and into the on-prem network (`10.0.0.0/12`).
+
+## 4. Private-backend evidence
+
+The Cloud Run backend is intentionally private. The canonical path is:
+
+```text
+Client -> External ALB + Cloud Armor -> Northbound PSC -> Apigee -> Southbound PSC -> Internal Regional Load Balancer -> Cloud Run
+```
+
+The Terraform code sets `ingress = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"` in `platform/GCP/terraform/modules/infrastructure/cloudrun.tf`. This is the correct GCP configuration for a Cloud Run service that sits behind an internal load balancer while remaining private-only. The public `run.app` URL is not used as the production path, and no public Cloud Run endpoint is exposed in the design.

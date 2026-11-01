@@ -71,6 +71,22 @@ Apigee runtime
 
 The transition from Apigee back into the customer-controlled network occurs at the customer PSC service attachment. Cloud Run must not allow direct public bypass through the default `run.app` endpoint.
 
+### Private-backend evidence
+
+The Cloud Run backend is intentionally private. The canonical path is:
+
+```text
+Client -> External ALB + Cloud Armor -> Northbound PSC -> Apigee -> Southbound PSC -> Internal Regional Load Balancer -> Cloud Run
+```
+
+The Terraform implementation in `platform/GCP/terraform/modules/infrastructure/cloudrun.tf` sets:
+
+```terraform
+ingress = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+```
+
+This is the correct GCP setting for a Cloud Run service that is reachable only through the internal load balancer / PSC path. The service is private-only and is not exposed as a public endpoint. No public Cloud Run URL is used as the canonical API path.
+
 
 ## 3. Apigee to On-Premises Backend
 

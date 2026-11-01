@@ -1,4 +1,3 @@
-
 ++ 
 title = "Public README — Rocket Code Apigee Challenge"
 domain = "entry-point"
@@ -79,10 +78,11 @@ terraform plan
 
 See [docs/operations/deployment-and-validation.md](docs/operations/deployment-and-validation.md) for full validation steps and required preconditions.
 
+
 ## Cautions & Preconditions
 
 - This repository contains internal-working material under `internalDocumentation/` and `docs/internal/` — those directories are intentionally Git-ignored; do not move secrets or credentials into tracked files.
-- Preconditions: billing enabled for the target project, required GCP quotas, and the necessary Apigee entitlements in the test account.
+- Note: billing is no longer a blocker for the current Terraform deployment or validation path. Earlier remote-state billing issues were historical and should not be treated as a live gating condition for this repo.
 - Security: never commit service account keys, Terraform state, or other secrets. Use remote state appropriately and least-privilege service accounts for deploy pipelines.
 - UNVERIFIED items: a few provider-managed runtime behaviors (detailed in `docs/assumptions/assumptions-risks-tradeoffs.md`) remain to be validated against live accounts.
 
@@ -101,4 +101,4 @@ See [docs/operations/deployment-and-validation.md](docs/operations/deployment-an
 - Render final diagrams and link them from `docs/architecture/architecture.md`.
 - Address and document UNVERIFIED behaviors discovered during validation.
 
-If you want, I can now run link checks for the top referenced docs and finish the todo tracker entries. Would you like me to proceed with link verification? 
+If you want, I can now run link checks for the top referenced docs and finish the todo tracker entries. Would you like me to proceed with link verification?
