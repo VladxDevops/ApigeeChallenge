@@ -51,6 +51,18 @@ variable "error_rate_threshold_percent" {
   default     = 5
 }
 
+variable "apigee_proxy_name" {
+  description = "Apigee API proxy name for the API Monitoring dashboard and alerts. Resource label proxy_name."
+  type        = string
+  default     = "hello-world-proxy"
+}
+
+variable "apigee_environment_name" {
+  description = "Apigee environment that hosts the monitored proxy. Resource label env."
+  type        = string
+  default     = "dev"
+}
+
 variable "cloud_run_service_name" {
   description = "Name of the backend Cloud Run service to observe."
   type        = string

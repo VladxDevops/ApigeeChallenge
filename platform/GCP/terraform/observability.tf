@@ -14,9 +14,11 @@ module "observability" {
   compute_project_number = var.compute_project_number
   compute_region         = var.compute_region
 
-  dashboard_name       = "Apigee End-to-End Latency & Observability Dashboard"
-  enable_alerting      = true
-  latency_threshold_ms = 2000
+  dashboard_name          = "Apigee End-to-End Latency & Observability Dashboard"
+  apigee_proxy_name       = "hello-world-proxy"
+  apigee_environment_name = "dev"
+  enable_alerting         = true
+  latency_threshold_ms    = 2000
 
   labels = {
     environment = "dev"
@@ -29,6 +31,11 @@ module "observability" {
 output "observability_dashboard_id" {
   description = "Resource ID of the Cloud Monitoring Latency & Observability Dashboard."
   value       = module.observability.dashboard_id
+}
+
+output "hello_world_proxy_dashboard_id" {
+  description = "Resource ID of the hello-world-proxy API Monitoring dashboard."
+  value       = module.observability.hello_world_proxy_dashboard_id
 }
 
 output "observability_alert_high_latency_id" {

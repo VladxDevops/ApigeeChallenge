@@ -1,3 +1,18 @@
+output "hello_world_proxy_dashboard_id" {
+  description = "Resource ID of the Cloud Monitoring dashboard for the hello-world-proxy API Monitoring view."
+  value       = google_monitoring_dashboard.hello_world_proxy.id
+}
+
+output "hello_world_proxy_latency_alert_id" {
+  description = "Resource ID of the hello-world-proxy proxy-latency alert. Null until create_alerts_when_metrics_ready is true."
+  value       = var.enable_alerting && var.create_alerts_when_metrics_ready ? google_monitoring_alert_policy.hello_world_proxy_latency[0].id : null
+}
+
+output "hello_world_proxy_5xx_alert_id" {
+  description = "Resource ID of the hello-world-proxy HTTP 5xx alert. Null until create_alerts_when_metrics_ready is true."
+  value       = var.enable_alerting && var.create_alerts_when_metrics_ready ? google_monitoring_alert_policy.hello_world_proxy_5xx[0].id : null
+}
+
 output "dashboard_id" {
   description = "The resource ID of the Cloud Monitoring Latency & Observability Dashboard."
   value       = google_monitoring_dashboard.api_latency_dashboard.id
