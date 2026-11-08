@@ -3,6 +3,7 @@ compute_project_number = "Value_removed"
 
 #Terraform: 
 terraform_deployer_service_account = "Value_removed"
+terraform_deployer_service_account_ldap = "PLACEHOLDER"
 #Remote Storage Bucket: 
 terraform_remote_state_bucket_name = "Value_removed"
 
@@ -11,14 +12,17 @@ compute_region = "us-south1"
 
 
 # Networking variables
-api_vpc_cidr            = "10.80.0.0/16"
-api_private_subnet_cidr = "10.80.1.0/28"
-proxy_only_subnet_cidr  = "10.80.2.0/26"
-psc_nat_subnet_cidr     = "10.80.3.0/29"
+api_vpc_cidr                 = "10.80.0.0/16"
+api_private_subnet_cidr      = "10.80.0.0/28"
+proxy_only_subnet_cidr       = "10.80.0.64/26"
+psc_nat_subnet_cidr          = "10.80.0.16/29"
+cloud_run_vpc_connector_cidr = "10.80.0.128/28"
+apigee_endpoint_attachment_host = "10.0.148.2" #Same as targe URL in defaul.XML. Value coming from 
+
 
 
 # Cloud Run backend service configuration
-cloud_run_service_name          = "rocketcode-demo-backend"
+cloud_run_service_name          = "hello-container-backend"
 cloud_run_image                 = "gcr.io/cloudrun/hello" #Repace with your actual container image. 
 cloud_run_container_port        = 8080
 cloud_run_service_account_email = "" # Leave empty to use default compute service account
@@ -52,6 +56,10 @@ tls_certificate                      = "" # Leave empty to auto-generate dev sel
 
 
 ### Apigee
-apigee_analytics_region   = "VERIFY_SUPPORTED_ANALYTICS_REGION"
+### Apigee
+apigee_tenant_project_id = "PLACEHOLDER"
+apigee_analytics_region   = "us-south1"
 apigee_billing_type       = "EVALUATION"
-apigee_envgroup_hostnames = ["api.example.com"]
+apigee_envgroup_hostnames = ["api.example.com"] #This value is used for the Apigee environment group hostnames, which can be updated to match your actual domain.
+#Apigee service account: 
+apigee_admin_service_account_name_dev = "PLACEHOLDER"

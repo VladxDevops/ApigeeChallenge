@@ -18,6 +18,10 @@
      </GoogleIDToken>
    </Authentication>
     <URL>https://10.0.148.2/hello</URL>
+    <SSLInfo>
+      <Enabled>true</Enabled>
+      <IgnoreValidationErrors>true</IgnoreValidationErrors>
+    </SSLInfo>
     <Properties>
       <Property name="success.codes">1xx,2xx,3xx</Property>
     </Properties>
