@@ -95,7 +95,19 @@ cd /home/pochitawork/InterviewCloudProjects/ApigeeChallenge/APPS/APIgee/proxies/
 zip -r ../hello-world-proxy.zip apiproxy
 ```
 
-Then import/deploy via the Apigee management API or the repo’s standard toolchain. Do not treat the zip as source; treat it as the final bundle artifact for deployment.
+Then import the zip through the Apigee management API. Do not treat the zip as source; treat it as the final bundle artifact for deployment.
+
+### Recommended proxy deploy (service account)
+
+`gcloud apigee apis deploy` has no service-account flag. The command accepts a revision plus `--api`, `--environment`, `--organization`, and `--override`. The global `--impersonate-service-account` flag chooses which identity calls the API. It does not set the identity the deployed proxy runs as. A deploy of this proxy without a service account fails with `MISSING_SERVICE_ACCOUNT`.
+
+Recommended method: the deployments REST method, with placeholders only. Do not write a project id, organization name, or service account email into this document.
+
+```bash
+curl -X POST "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY_NAME/revisions/$REV/deployments?override=true&serviceAccount=$APIGEE_SA_EMAIL" -H "Authorization: Bearer $(gcloud auth print-access-token)"
+```
+
+The query names `override` and `serviceAccount` match the Apigee reference for `organizations.environments.apis.revisions.deployments.deploy` (checked 2026-11-08). `serviceAccount` is the Google Cloud IAM service account the deployed proxy runs as, in the form `{ACCOUNT_ID}@{PROJECT}.iam.gserviceaccount.com`.
 
 ### Apigee bundle validation and review gate
 
@@ -116,7 +128,7 @@ A bundle is considered "validated and reviewed" only when all of the following a
 3. Traffic contract is correct.
    - `ProxyEndpoint` `BasePath` is correct for the target envgroup hostname and intended API path.
    - `TargetEndpoint` `URL` does not contain placeholders, dummy values, or obviously wrong hostnames.
-   - Southbound target URLs use `http://` when they connect to the internal PSC/ILB path, matching the repo networking design.
+   - A southbound target that sends `<Authentication>` uses `https://` and includes `<SSLInfo>`. Apigee rejects `<Authentication>` on an `http://` target.
    - The target host is not hardcoded if the environment-specific endpoint must come from Terraform output.
 
 4. The change is reviewed for risk.

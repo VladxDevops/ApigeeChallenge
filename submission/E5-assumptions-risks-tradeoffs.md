@@ -17,5 +17,6 @@
 
 ## 3. Architecture Trade-offs
 
+- **Dev target TLS validation off**: Development uses a self-signed load balancer certificate, so the Apigee target `SSLInfo` sets `IgnoreValidationErrors` to `true`. This is a dev-only security trade-off. Production uses a CA-signed certificate on the load balancer, loads that CA into an Apigee truststore, sets `IgnoreValidationErrors` to `false`, and addresses the target by a hostname the certificate covers instead of the bare IP.
 - **PSC vs. VPC Peering**: PSC introduces service attachment configuration complexity but completely avoids Apigee CIDR allocation and VPC peering routing risks.
 - **Regional vs. Global ALB**: Regional ALB restricts deployment scope to `us-south1` and simplifies Cloud Armor policy management, whereas Global ALB would provide multi-region failover at higher cost/complexity.

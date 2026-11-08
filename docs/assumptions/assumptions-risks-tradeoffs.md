@@ -59,6 +59,7 @@ version = "1.1"
 | Cloud VPN instead of Interconnect | Easier exercise deployment | Less predictable latency/throughput |
 | Cloud Run instead of GKE | Lower operations burden | Less control over networking internals |
 | PSC instead of VPC peering | Aligns with challenge constraints and avoids Apigee CIDR assignment | Requires explicit service attachments and endpoint attachments |
+| Dev Apigee target `SSLInfo` sets `IgnoreValidationErrors` to `true` | The proxy can complete TLS to the dev load balancer, which uses a self-signed certificate. | Dev only. Production puts a CA-signed certificate on the load balancer, loads that CA into an Apigee truststore, sets `IgnoreValidationErrors` to `false`, and addresses the target by a hostname the certificate covers instead of the bare IP. |
 | Minimal Terraform modules | Easier to review for the interview | Less reusable than a mature platform module library |
 
 ## Open Questions

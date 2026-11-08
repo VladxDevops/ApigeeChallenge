@@ -25,6 +25,25 @@ version = "1.6"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+## 2026-11-08 — Record the dev target TLS exception and the service-account deploy
+
+**What changed**:
+- Added the dev-only `IgnoreValidationErrors=true` trade-off to `docs/assumptions/assumptions-risks-tradeoffs.md` and `submission/E5-assumptions-risks-tradeoffs.md`.
+- Documented the deployments REST call as the recommended proxy deploy in `docs/operations/deployment-and-validation.md`, using placeholders only.
+- Corrected the same file's bundle gate, which had required an `http://` southbound target.
+
+**Why**:
+- The dev load balancer certificate is self-signed, so the Apigee target turns validation errors off. Production is a CA-signed certificate, an Apigee truststore, validation on, and a hostname the certificate covers.
+- `gcloud apigee apis deploy` cannot set the proxy service account. The global impersonation flag is a different control, and a deploy without `serviceAccount` fails with `MISSING_SERVICE_ACCOUNT`.
+
+**Affected area**:
+- Assumptions and the proxy deploy procedure. The target XML was already present and was not edited.
+
+**Validation performed**:
+- `gcloud apigee apis deploy --help` lists no service-account flag.
+- Apigee REST reference for `deployments.deploy` names the query parameters `override` and `serviceAccount`.
+- No live deploy was run.
+
 ## 2026-10-31 — Elaborate the internal documentation hierarchy
 
 **What changed**:
