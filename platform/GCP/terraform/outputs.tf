@@ -45,6 +45,12 @@ output "cloud_run_service_account_email" {
   value       = module.security.cloud_run_service_account_email
 }
 
+#Northbound IP address output:
+output "northbound_ip" {
+  description = "Reserved regional IP address for the northbound entry point. Use as the --resolve target for api.example.com."
+  value = module.infrastructure.apigee_northbound_ip_address
+}
+
 #Southbound Apigee endpoint attachment outputs: 
 output "apigee_endpoint_attachment_host" {
   description = "reaplace placeholder: <HTTPTargetConnection> <URL>http://REPLACE_WITH_ENDPOINT_ATTACHMENT_HOST/</URL> <Properties> with this output"
