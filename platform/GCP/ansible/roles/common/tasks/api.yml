@@ -1,0 +1,28 @@
+---
+# One Apigee Management API call. The token is hidden; errors are reported explicitly.
+#   api_method        GET (default) or POST
+#   api_path          path after /v1, e.g. /organizations/<org>/endpointAttachments
+#   api_ok_statuses   list of accepted HTTP statuses (default [200])
+# Result: api_result (registered, includes .status and .json)
+
+- name: "Apigee API {{ api_method | default('GET') }} {{ api_path }}"
+  ansible.builtin.uri:
+    url: "{{ apigee_api_base }}{{ api_path }}"
+    method: "{{ api_method | default('GET') }}"
+    headers:
+      Authorization: "Bearer {{ access_token }}"
+    return_content: true
+    status_code: "{{ api_ok_statuses | default([200]) }}"
+  register: api_result
+  failed_when: false
+  check_mode: false
+  no_log: true
+
+- name: "Check the response of {{ api_path }}"
+  ansible.builtin.assert:
+    that: api_result.status in (api_ok_statuses | default([200]))
+    fail_msg: >-
+      Apigee API call failed: {{ api_method | default('GET') }} {{ api_path }}
+      -> HTTP {{ api_result.status | default('no response') }}.
+      {{ (api_result.json | default({})).get('error', {}).get('message', api_result.msg | default('')) }}
+    quiet: true

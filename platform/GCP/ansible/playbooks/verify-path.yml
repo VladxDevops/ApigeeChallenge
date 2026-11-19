@@ -1,0 +1,10 @@
+---
+# Read-only. Safe to run at any time:
+#   cd platform/GCP/ansible && ansible-playbook playbooks/verify-path.yml
+- name: Verify the Apigee southbound / northbound path
+  hosts: dev
+  gather_facts: false
+  tasks:
+    - name: Run the verification checks
+      ansible.builtin.include_role:
+        name: verify

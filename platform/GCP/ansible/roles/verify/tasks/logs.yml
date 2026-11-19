@@ -1,0 +1,29 @@
+---
+# Looks for the request in the Cloud Run request logs. Log delivery can lag and needs
+# logging read permission, so a miss is reported as a warning and does not fail the run.
+
+- name: Search Cloud Run logs for the request
+  ansible.builtin.command:
+    argv:
+      - gcloud
+      - logging
+      - read
+      - 'resource.type="cloud_run_revision" AND resource.labels.service_name="{{ cloud_run_service_name }}" AND httpRequest.requestUrl:"{{ apigee_proxy_basepath }}"'
+      - "--project={{ compute_project_id }}"
+      - --freshness=10m
+      - --limit=1
+      - "--format=value(timestamp)"
+  register: run_logs
+  until: run_logs.rc != 0 or (run_logs.stdout | trim | length) > 0
+  retries: 6
+  delay: 10
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Report the log check
+  ansible.builtin.debug:
+    msg: >-
+      {{ ('Cloud Run logged the request at ' ~ (run_logs.stdout | trim))
+         if (run_logs.stdout | trim | length) > 0
+         else 'WARNING: no Cloud Run request log found in the last 10 minutes (log lag or missing logging.viewer permission). The HTTP 200 above is the authoritative result.' }}

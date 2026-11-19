@@ -1,0 +1,16 @@
+---
+# Safety guard for anything that changes Apigee. Both checks must pass.
+
+- name: Refuse to run in check mode
+  ansible.builtin.assert:
+    that: not ansible_check_mode
+    fail_msg: "This playbook changes Apigee and does not support --check. Use verify-path.yml for read-only checks."
+    quiet: true
+
+- name: Require explicit confirmation of the target environment
+  ansible.builtin.assert:
+    that: lookup('ansible.builtin.env', 'APIGEE_DEPLOY_ENV') == apigee_environment_name
+    fail_msg: >-
+      Deploy guard: set APIGEE_DEPLOY_ENV={{ apigee_environment_name }} to confirm you intend to deploy to
+      '{{ apigee_environment_name }}' (organization '{{ apigee_org }}').
+    quiet: true

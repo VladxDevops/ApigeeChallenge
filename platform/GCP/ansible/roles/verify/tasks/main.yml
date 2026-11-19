@@ -1,0 +1,41 @@
+---
+# Read-only verification of the whole data path. Safe to run at any time.
+# Optional input: expected_revision (set by deploy-proxy.yml) to assert that exact revision is live.
+
+- name: Preflight (tools and variables)
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: preflight
+  vars:
+    preflight_commands: "{{ ['gcloud', 'curl'] + (['terraform'] if (northbound_ip | default('') | length == 0) else []) }}"
+
+- name: Get an access token
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: token
+  when: access_token is not defined
+
+- name: 1/5 Validate the bundle sources
+  ansible.builtin.include_role:
+    name: apigee_proxy
+    tasks_from: validate_bundle
+
+- name: 2/5 Check the southbound endpoint attachment
+  ansible.builtin.include_tasks: attachment.yml
+
+- name: 3/5 Check the deployment
+  ansible.builtin.include_tasks: deployment.yml
+
+- name: 4/5 Call the API through the northbound entry point
+  ansible.builtin.include_tasks: northbound.yml
+
+- name: 5/5 Look for the request in the Cloud Run logs
+  ansible.builtin.include_tasks: logs.yml
+  when: verify_cloud_run_logs | bool
+
+- name: Verification summary
+  ansible.builtin.debug:
+    msg:
+      - "Proxy '{{ apigee_proxy_name }}' revision {{ deployed_revision }} is READY in '{{ apigee_environment_name }}'."
+      - "Endpoint attachment {{ apigee_endpoint_attachment_host }} is ACTIVE/ACCEPTED."
+      - "https://{{ envgroup_hostname }}{{ apigee_proxy_basepath }} returned HTTP 200 via {{ northbound_ip_effective }}."

@@ -1,0 +1,57 @@
+---
+# Builds, imports and deploys the proxy bundle, then verifies the path.
+# Requires an explicit confirmation of the target environment:
+#   cd platform/GCP/ansible
+#   APIGEE_DEPLOY_ENV=dev ansible-playbook playbooks/deploy-proxy.yml
+- name: Build, import and deploy the Apigee proxy
+  hosts: dev
+  gather_facts: false
+  tasks:
+    - name: Deploy guard (environment confirmation, no check mode)
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: deploy_guard
+
+    - name: Preflight (tools and variables)
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: preflight
+      vars:
+        preflight_commands: [gcloud, curl, zip]
+
+    - name: Get an access token
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: token
+
+    - name: Validate the bundle sources
+      ansible.builtin.include_role:
+        name: apigee_proxy
+        tasks_from: validate_bundle
+
+    - name: Build the zip
+      ansible.builtin.include_role:
+        name: apigee_proxy
+        tasks_from: build_zip
+
+    - name: Import the zip as a new revision
+      ansible.builtin.include_role:
+        name: apigee_proxy
+        tasks_from: import
+
+    - name: Deploy the new revision with the service account
+      ansible.builtin.include_role:
+        name: apigee_proxy
+        tasks_from: deploy
+
+    - name: Wait until the deployment is READY
+      ansible.builtin.include_role:
+        name: apigee_proxy
+        tasks_from: wait_ready
+
+    - name: Verify the full path for the new revision
+      ansible.builtin.include_role:
+        name: verify
+      vars:
+        expected_revision: "{{ new_revision }}"
+      when: run_verify_after_deploy | bool

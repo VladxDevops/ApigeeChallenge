@@ -1,0 +1,31 @@
+---
+# Polls the revision deployment until it is READY (or ERROR, or retries run out).
+
+- name: Wait for the deployment to finish
+  ansible.builtin.uri:
+    url: "{{ apigee_api_base }}/organizations/{{ apigee_org }}/environments/{{ apigee_environment_name }}/apis/{{ apigee_proxy_name }}/revisions/{{ new_revision }}/deployments"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ access_token }}"
+    return_content: true
+    status_code: [200, 404]
+  register: wait_result
+  until: >-
+    wait_result.status | default(0) == 200 and
+    (wait_result.json | default({})).get('state', '') in ['READY', 'ERROR']
+  retries: "{{ deploy_wait_retries }}"
+  delay: "{{ deploy_wait_delay_seconds }}"
+  no_log: true
+
+- name: Check that the deployment is READY
+  ansible.builtin.assert:
+    that: (wait_result.json | default({})).get('state', '') == 'READY'
+    fail_msg: >-
+      Revision {{ new_revision }} did not become READY.
+      State: {{ (wait_result.json | default({})).get('state', 'unknown') }}.
+      Errors: {{ (wait_result.json | default({})).get('errors', []) }}
+    quiet: true
+
+- name: Report the deployment
+  ansible.builtin.debug:
+    msg: "Revision {{ new_revision }} is READY in '{{ apigee_environment_name }}' after {{ wait_result.attempts | default(1) }} check(s)."

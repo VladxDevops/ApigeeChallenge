@@ -1,0 +1,106 @@
+---
+# Read-only validation of the proxy bundle sources BEFORE anything is imported.
+# Encodes the southbound rules of this project (see Agents/skills/apigee-southbound-guard).
+
+- name: Check that the bundle files exist
+  ansible.builtin.stat:
+    path: "{{ proxy_bundle_dir }}/apiproxy/{{ item }}"
+  loop: "{{ bundle_required_files }}"
+  register: bundle_stat
+  check_mode: false
+
+- name: Stop if a bundle file is missing
+  ansible.builtin.assert:
+    that: item.stat.exists
+    fail_msg: "Missing bundle file: {{ proxy_bundle_dir }}/apiproxy/{{ item.item }}"
+    quiet: true
+  loop: "{{ bundle_stat.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Check that every bundle XML file is well-formed
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_playbook_python }}"
+      - -c
+      - "import sys, xml.dom.minidom as m; [m.parse(f) for f in sys.argv[1:]]"
+      - "{{ proxy_bundle_dir }}/apiproxy/{{ bundle_required_files[0] }}"
+      - "{{ proxy_bundle_dir }}/apiproxy/{{ bundle_required_files[1] }}"
+      - "{{ proxy_bundle_dir }}/apiproxy/{{ bundle_required_files[2] }}"
+  changed_when: false
+  check_mode: false
+
+- name: Read the APIProxy descriptor
+  ansible.builtin.slurp:
+    src: "{{ proxy_bundle_dir }}/apiproxy/{{ bundle_required_files[0] }}"
+  register: descriptor_raw
+  check_mode: false
+
+- name: Read the ProxyEndpoint
+  ansible.builtin.slurp:
+    src: "{{ proxy_bundle_dir }}/apiproxy/proxies/default.xml"
+  register: proxy_endpoint_raw
+  check_mode: false
+
+- name: Read the TargetEndpoint
+  ansible.builtin.slurp:
+    src: "{{ proxy_bundle_dir }}/apiproxy/targets/default.xml"
+  register: target_endpoint_raw
+  check_mode: false
+
+- name: Decode the bundle XML and extract the target host
+  ansible.builtin.set_fact:
+    descriptor_xml: "{{ descriptor_raw.content | b64decode }}"
+    proxy_xml: "{{ proxy_endpoint_raw.content | b64decode }}"
+    target_xml: "{{ target_endpoint_raw.content | b64decode }}"
+
+- name: Extract the host from the target URL
+  ansible.builtin.set_fact:
+    bundle_target_host: "{{ target_xml | regex_findall('<URL>https://([^/:<]+)') | first | default('', true) }}"
+
+- name: Check proxy name, base path and target host
+  ansible.builtin.assert:
+    that:
+      - descriptor_xml is search(re_descriptor_name)
+      - proxy_xml is search(re_basepath)
+      - (bundle_target_host | length) > 0
+      - bundle_target_host == apigee_endpoint_attachment_host
+    fail_msg: >-
+      Bundle mismatch. Expected proxy name '{{ apigee_proxy_name }}', base path '{{ apigee_proxy_basepath }}',
+      and an https:// target URL whose host equals apigee_endpoint_attachment_host
+      ('{{ apigee_endpoint_attachment_host }}'); the target URL host found is '{{ bundle_target_host }}'.
+    quiet: true
+  vars:
+    re_descriptor_name: '<APIProxy[^>]*\bname="{{ apigee_proxy_name }}"'
+    re_basepath: '<BasePath>{{ apigee_proxy_basepath }}</BasePath>'
+
+- name: Check TLS settings of the target (SSLInfo is mandatory with Authentication)
+  ansible.builtin.assert:
+    that:
+      - (target_xml is not search('<GoogleIDToken>')) or (target_xml is search(re_ssl_enabled))
+    fail_msg: >-
+      targets/default.xml has Authentication (GoogleIDToken) but no <SSLInfo> with <Enabled>true</Enabled>.
+      Apigee rejects such a bundle ("bundle contains errors").
+    quiet: true
+  vars:
+    re_ssl_enabled: '<SSLInfo>\s*<Enabled>true</Enabled>'
+
+- name: Check the dev-only TLS validation exception is not used outside dev
+  ansible.builtin.assert:
+    that:
+      - (target_xml is not search(re_ignore_errors)) or (apigee_environment_name in tls_validation_bypass_allowed_envs)
+    fail_msg: >-
+      IgnoreValidationErrors=true is a dev-only exception and is not allowed for environment
+      '{{ apigee_environment_name }}'. Use a CA-signed certificate and a truststore.
+    quiet: true
+  vars:
+    re_ignore_errors: '<IgnoreValidationErrors>\s*true\s*</IgnoreValidationErrors>'
+
+- name: Check the ID token audience (https origin only, no path, no trailing slash)
+  ansible.builtin.assert:
+    that:
+      - (target_xml is not search('<GoogleIDToken>')) or (target_xml is search(re_audience))
+    fail_msg: "<Audience> must be a bare https origin such as https://<service>.run.app (no path, no trailing slash)."
+    quiet: true
+  vars:
+    re_audience: '<Audience>https://[^/<]+</Audience>'

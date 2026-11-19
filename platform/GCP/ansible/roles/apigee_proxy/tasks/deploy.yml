@@ -1,0 +1,29 @@
+---
+# Deploys the new revision WITH the Apigee service account (REST call).
+# gcloud 'apis deploy' has no service-account flag, and a deployment without one fails.
+# override=true replaces the revision currently deployed in the environment.
+
+- name: Deploy the new revision with the service account
+  ansible.builtin.uri:
+    url: >-
+      {{ apigee_api_base }}/organizations/{{ apigee_org }}/environments/{{ apigee_environment_name }}/apis/{{ apigee_proxy_name }}/revisions/{{ new_revision }}/deployments?override=true&serviceAccount={{ apigee_service_account_email | urlencode }}
+    method: POST
+    headers:
+      Authorization: "Bearer {{ access_token }}"
+    return_content: true
+    status_code: 200
+  register: deploy_result
+  failed_when: false
+  no_log: true
+
+- name: Stop if the deploy request was rejected
+  ansible.builtin.assert:
+    that: deploy_result.status == 200
+    fail_msg: >-
+      Deploy request failed: HTTP {{ deploy_result.status | default('no response') }}.
+      {{ (deploy_result.json | default({})).get('error', {}).get('message', deploy_result.msg | default('')) }}
+    quiet: true
+
+- name: Report the deploy request
+  ansible.builtin.debug:
+    msg: "Deploy of revision {{ new_revision }} to '{{ apigee_environment_name }}' accepted (state: {{ (deploy_result.json | default({})).get('state', 'unknown') }})."

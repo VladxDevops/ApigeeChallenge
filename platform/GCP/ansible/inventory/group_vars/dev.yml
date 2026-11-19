@@ -1,0 +1,28 @@
+---
+# Dev environment values. Replace every PLACEHOLDER (or pass them with -e).
+# Names mirror platform/GCP/terraform/environments/DEV/dev.tfvars where one exists.
+
+compute_project_id: "PLACEHOLDER_PROJECT_ID"
+compute_region: "us-south1"
+
+# In Apigee X the organization id normally equals the org's project id.
+apigee_org: "{{ compute_project_id }}"
+apigee_environment_name: dev
+apigee_envgroup_name: dev-group
+apigee_instance_name: apigee-instance-us-south1
+
+# Service account the proxy deployment runs as (email form).
+apigee_service_account_email: "PLACEHOLDER_APIGEE_SA@PLACEHOLDER_PROJECT_ID.iam.gserviceaccount.com"
+
+# Southbound: must equal the host in targets/default.xml and the Terraform output.
+apigee_endpoint_attachment_host: "PLACEHOLDER_ENDPOINT_ATTACHMENT_HOST"
+
+# Northbound test
+envgroup_hostname: api.example.com
+# Reserved regional IP. Leave empty to read it from `terraform output -raw northbound_ip`.
+northbound_ip: ""
+# Dev uses a self-signed certificate on the northbound path.
+curl_insecure: true
+
+# Cloud Run service whose logs are checked after the test call.
+cloud_run_service_name: hello-container-backend

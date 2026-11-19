@@ -1,0 +1,9 @@
+---
+# Everything runs on this machine against Google APIs; there are no remote hosts.
+all:
+  children:
+    dev:
+      hosts:
+        localhost:
+          ansible_connection: local
+          ansible_python_interpreter: "{{ ansible_playbook_python }}"

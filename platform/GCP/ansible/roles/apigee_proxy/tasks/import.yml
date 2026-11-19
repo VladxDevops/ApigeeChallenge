@@ -1,0 +1,38 @@
+---
+# Imports the zip as a new revision (same call as the manual curl).
+# The token goes to curl on stdin (-H @-), so it never appears in the process list.
+
+- name: Import the bundle (creates a new revision)
+  ansible.builtin.command:
+    argv:
+      - curl
+      - -sS
+      - --fail-with-body
+      - -X
+      - POST
+      - -H
+      - "@-"
+      - -F
+      - "file=@{{ proxy_zip_path }}"
+      - "{{ apigee_api_base }}/organizations/{{ apigee_org }}/apis?action=import&name={{ apigee_proxy_name }}"
+    stdin: "Authorization: Bearer {{ access_token }}"
+  register: import_raw
+  changed_when: true
+  failed_when: false
+  no_log: true
+
+- name: Stop if the import failed
+  ansible.builtin.assert:
+    that:
+      - import_raw.rc == 0
+      - (import_raw.stdout | from_json).revision is defined
+    fail_msg: "Import failed (curl exit {{ import_raw.rc }}). Response: {{ import_raw.stdout | default('') }} {{ import_raw.stderr | default('') }}"
+    quiet: true
+
+- name: Remember the new revision number
+  ansible.builtin.set_fact:
+    new_revision: "{{ (import_raw.stdout | from_json).revision | string }}"
+
+- name: Report the imported revision
+  ansible.builtin.debug:
+    msg: "Imported '{{ apigee_proxy_name }}' as revision {{ new_revision }}."

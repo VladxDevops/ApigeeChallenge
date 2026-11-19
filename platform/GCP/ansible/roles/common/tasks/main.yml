@@ -1,0 +1,3 @@
+---
+# Intentionally empty: use `include_role` with `tasks_from` (see playbooks/).
+[]

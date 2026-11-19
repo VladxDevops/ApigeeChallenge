@@ -1,0 +1,42 @@
+---
+# Values shared by every environment. Environment values live in dev.yml.
+
+# --- Paths (resolved from this layout: <repo>/platform/GCP/ansible/playbooks) ---
+repo_root: "{{ (playbook_dir ~ '/../../../..') | realpath }}"
+proxy_bundle_dir: "{{ repo_root }}/APPS/APIgee/proxies/hello-world-proxy"
+proxy_zip_path: "{{ repo_root }}/APPS/APIgee/proxies/hello-world-proxy.zip"
+terraform_dir: "{{ repo_root }}/platform/GCP/terraform"
+
+# --- Apigee ---
+apigee_api_base: "https://apigee.googleapis.com/v1"
+apigee_proxy_name: hello-world-proxy
+apigee_proxy_basepath: /hello
+
+# Files that must exist under <proxy_bundle_dir>/apiproxy/
+bundle_required_files:
+  - "{{ apigee_proxy_name }}.xml"
+  - proxies/default.xml
+  - targets/default.xml
+
+# IgnoreValidationErrors=true (self-signed LB cert) is only accepted in these environments.
+tls_validation_bypass_allowed_envs:
+  - dev
+
+# --- Deploy behaviour ---
+deploy_wait_retries: 30
+deploy_wait_delay_seconds: 10
+run_verify_after_deploy: true
+
+# --- Verification ---
+terraform_northbound_output: northbound_ip
+verify_cloud_run_logs: true
+
+# Variables that must be set (and must not contain PLACEHOLDER) before anything runs.
+required_vars:
+  - compute_project_id
+  - apigee_org
+  - apigee_environment_name
+  - apigee_proxy_name
+  - apigee_service_account_email
+  - apigee_endpoint_attachment_host
+  - envgroup_hostname

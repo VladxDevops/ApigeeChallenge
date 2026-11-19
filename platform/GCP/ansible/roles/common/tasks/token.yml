@@ -1,0 +1,24 @@
+---
+# Gets an access token from the active gcloud login. The token is never printed.
+
+- name: Get an access token from the active gcloud login
+  ansible.builtin.command:
+    argv: [gcloud, auth, print-access-token]
+  register: gcloud_token
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  no_log: true
+
+- name: Stop if gcloud is not authenticated
+  ansible.builtin.assert:
+    that:
+      - gcloud_token.rc == 0
+      - (gcloud_token.stdout | trim | length) > 0
+    fail_msg: "gcloud has no usable credentials. Run 'gcloud auth login' (check with 'gcloud auth list') and run again."
+    quiet: true
+
+- name: Keep the token as a fact (hidden from output)
+  ansible.builtin.set_fact:
+    access_token: "{{ gcloud_token.stdout | trim }}"
+  no_log: true

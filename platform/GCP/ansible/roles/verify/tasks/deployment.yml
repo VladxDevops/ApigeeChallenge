@@ -1,0 +1,54 @@
+---
+- name: List the proxy's deployments in the environment
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: api
+  vars:
+    api_path: "/organizations/{{ apigee_org }}/environments/{{ apigee_environment_name }}/apis/{{ apigee_proxy_name }}/deployments"
+
+- name: Pick the revision to inspect
+  ansible.builtin.set_fact:
+    deployed_list: "{{ (api_result.json | default({})).get('deployments', []) }}"
+
+- name: Check that the proxy is deployed (and is the expected revision, if one was given)
+  ansible.builtin.assert:
+    that:
+      - deployed_list | length > 0
+      - (expected_revision is not defined) or ((expected_revision | string) in (deployed_list | map(attribute='revision') | map('string') | list))
+    fail_msg: >-
+      Proxy '{{ apigee_proxy_name }}' is not deployed in '{{ apigee_environment_name }}'
+      {{ ('with expected revision ' ~ expected_revision) if expected_revision is defined else '' }}.
+      Deployed revisions: {{ deployed_list | map(attribute='revision', default='?') | list }}
+    quiet: true
+
+- name: Choose the revision
+  ansible.builtin.set_fact:
+    deployed_revision: "{{ (expected_revision | string) if expected_revision is defined else (deployed_list | first).revision | string }}"
+
+- name: Read the revision deployment details
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: api
+  vars:
+    api_path: "/organizations/{{ apigee_org }}/environments/{{ apigee_environment_name }}/apis/{{ apigee_proxy_name }}/revisions/{{ deployed_revision }}/deployments"
+
+- name: Collect deployment facts
+  ansible.builtin.set_fact:
+    deployment_detail: "{{ api_result.json | default({}) }}"
+    deployed_instances: "{{ (api_result.json | default({})).get('instances', []) | map(attribute='instance', default='?') | list }}"
+    deployed_routes: "{{ (api_result.json | default({})).get('instances', []) | map(attribute='deployedRoutes', default=[]) | flatten | list }}"
+
+- name: Check state, service account, instance and route
+  ansible.builtin.assert:
+    that:
+      - deployment_detail.get('state', '') == 'READY'
+      - deployment_detail.get('serviceAccount', '').endswith(apigee_service_account_email)
+      - apigee_instance_name in deployed_instances
+      - deployed_routes | selectattr('basepath', 'equalto', apigee_proxy_basepath) | selectattr('envgroup', 'equalto', apigee_envgroup_name) | list | length > 0
+    fail_msg: >-
+      Deployment check failed for revision {{ deployed_revision }}.
+      state={{ deployment_detail.get('state', 'unknown') }} (want READY);
+      serviceAccount={{ deployment_detail.get('serviceAccount', 'none') }} (want to end with {{ apigee_service_account_email }});
+      instances={{ deployed_instances }} (want {{ apigee_instance_name }});
+      routes={{ deployed_routes }} (want basepath {{ apigee_proxy_basepath }} in envgroup {{ apigee_envgroup_name }}).
+    quiet: true

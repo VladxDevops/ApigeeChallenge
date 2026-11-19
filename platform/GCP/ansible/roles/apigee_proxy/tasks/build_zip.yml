@@ -1,0 +1,52 @@
+---
+# Builds the bundle zip with the same zip command as the manual procedure,
+# after deleting the old zip (zip -r only adds/updates, so stale entries would survive).
+
+- name: Remove the previous zip
+  ansible.builtin.file:
+    path: "{{ proxy_zip_path }}"
+    state: absent
+
+- name: Build the bundle zip (zip -r from the proxy folder)
+  ansible.builtin.command:
+    argv:
+      - zip
+      - -r
+      - "{{ proxy_zip_path }}"
+      - apiproxy
+      - -x
+      - "*.gitignore"
+      - "*~"
+      - "*.swp"
+      - "*.DS_Store"
+    chdir: "{{ proxy_bundle_dir }}"
+  changed_when: true
+
+- name: List the zip entries
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_playbook_python }}"
+      - -c
+      - "import sys, zipfile; print('\\n'.join(zipfile.ZipFile(sys.argv[1]).namelist()))"
+      - "{{ proxy_zip_path }}"
+  register: zip_listing
+  changed_when: false
+
+- name: Check the zip contents
+  ansible.builtin.assert:
+    that:
+      - "('apiproxy/' ~ bundle_required_files[0]) in zip_listing.stdout_lines"
+      - "'apiproxy/proxies/default.xml' in zip_listing.stdout_lines"
+      - "'apiproxy/targets/default.xml' in zip_listing.stdout_lines"
+      - zip_listing.stdout_lines | select('search', 'gitignore') | list | length == 0
+    fail_msg: "The zip does not have the expected structure. Entries found: {{ zip_listing.stdout_lines }}"
+    quiet: true
+
+- name: Check that the zipped target still has SSLInfo
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_playbook_python }}"
+      - -c
+      - "import sys, zipfile; sys.exit(0 if b'<SSLInfo>' in zipfile.ZipFile(sys.argv[1]).read('apiproxy/targets/default.xml') else 3)"
+      - "{{ proxy_zip_path }}"
+  changed_when: false

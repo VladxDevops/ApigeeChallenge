@@ -1,0 +1,24 @@
+---
+- name: List the organization's endpoint attachments
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: api
+  vars:
+    api_path: "/organizations/{{ apigee_org }}/endpointAttachments"
+
+- name: Find the attachment with the expected host
+  ansible.builtin.set_fact:
+    attachment_match: "{{ (api_result.json | default({})).get('endpointAttachments', []) | selectattr('host', 'equalto', apigee_endpoint_attachment_host) | list }}"
+    attachment_hosts: "{{ (api_result.json | default({})).get('endpointAttachments', []) | map(attribute='host', default='?') | list }}"
+
+- name: Check the attachment is ACTIVE and ACCEPTED
+  ansible.builtin.assert:
+    that:
+      - attachment_match | length == 1
+      - attachment_match[0].state | default('') == 'ACTIVE'
+      - attachment_match[0].connectionState | default('') == 'ACCEPTED'
+    fail_msg: >-
+      Endpoint attachment check failed. Expected exactly one attachment with host
+      '{{ apigee_endpoint_attachment_host }}' in state ACTIVE and connectionState ACCEPTED.
+      Hosts found: {{ attachment_hosts }}. Match: {{ attachment_match }}
+    quiet: true

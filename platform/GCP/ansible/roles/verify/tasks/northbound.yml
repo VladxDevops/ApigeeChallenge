@@ -1,0 +1,69 @@
+---
+# Resolves the northbound IP (variable first, then Terraform output) and calls the API through it.
+
+- name: Use the northbound_ip variable when it is set
+  ansible.builtin.set_fact:
+    northbound_ip_effective: "{{ northbound_ip | trim }}"
+  when: (northbound_ip | default('') | length) > 0
+
+- name: Otherwise read the IP from the Terraform output
+  ansible.builtin.command:
+    argv: [terraform, "-chdir={{ terraform_dir }}", output, -raw, "{{ terraform_northbound_output }}"]
+  register: tf_northbound
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: northbound_ip_effective is not defined
+
+- name: Stop if the IP could not be determined
+  ansible.builtin.assert:
+    that: northbound_ip_effective is defined or (tf_northbound.rc == 0 and (tf_northbound.stdout | trim | length) > 0)
+    fail_msg: >-
+      northbound_ip is empty and 'terraform output -raw {{ terraform_northbound_output }}' failed.
+      Set northbound_ip in inventory/group_vars/dev.yml, or apply the Terraform output first.
+    quiet: true
+
+- name: Remember the IP from Terraform
+  ansible.builtin.set_fact:
+    northbound_ip_effective: "{{ tf_northbound.stdout | trim }}"
+  when: northbound_ip_effective is not defined
+
+- name: Check it looks like an IPv4 address
+  ansible.builtin.assert:
+    that: northbound_ip_effective is match('^[0-9]{1,3}(\.[0-9]{1,3}){3}$')
+    fail_msg: "'{{ northbound_ip_effective }}' is not an IPv4 address."
+    quiet: true
+
+- name: Call the API through the northbound IP
+  ansible.builtin.command:
+    argv: "{{ ['curl'] + curl_insecure_args + curl_base_args + ['https://' ~ envgroup_hostname ~ apigee_proxy_basepath] }}"
+  vars:
+    curl_insecure_args: "{{ ['-k'] if (curl_insecure | default(false) | bool) else [] }}"
+    curl_base_args:
+      - -sS
+      - --max-time
+      - "20"
+      - -w
+      - '\n%{http_code}'
+      - --resolve
+      - "{{ envgroup_hostname }}:443:{{ northbound_ip_effective }}"
+  register: curl_result
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Check the response is HTTP 200
+  ansible.builtin.assert:
+    that:
+      - curl_result.rc == 0
+      - curl_result.stdout_lines | last == '200'
+    fail_msg: >-
+      Northbound call failed. curl exit={{ curl_result.rc }}, HTTP={{ curl_result.stdout_lines | default([]) | last | default('none') }}.
+      {{ curl_result.stderr | default('') }}
+      Check the deployment, the endpoint attachment, the target TLS settings and the proxy trace;
+      see the apigee-southbound-guard skill troubleshooting for 403/404/500/503.
+    quiet: true
+
+- name: Show the response body
+  ansible.builtin.debug:
+    msg: "{{ curl_result.stdout_lines[:-1] }}"
