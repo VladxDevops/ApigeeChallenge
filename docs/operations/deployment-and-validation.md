@@ -166,3 +166,30 @@ Quick checklist before upload:
 - [ ] The selected bundle is the canonical one for this repo; stale or alternate bundles are not being imported by mistake.
 - [ ] The change has been reviewed for networking/security impact and recorded in `changelog.md` if needed.
 - [ ] The zip is generated immediately before upload, and uploaded only to the intended Apigee org/environment.
+
+### Ansible proxy operations
+
+The `platform/GCP/ansible/` playbooks operate on the already-provisioned Apigee proxy and are not Terraform replacements.
+Ansible resolves Terraform-owned values at runtime through root outputs:
+
+- `compute_project_id`
+- `apigee_service_account_email`
+- `apigee_endpoint_attachment_host`
+- `northbound_ip` (fallback)
+
+Run read-only verification with:
+
+```bash
+cd platform/GCP/ansible
+ansible-playbook playbooks/verify-path.yml --syntax-check
+ansible-playbook playbooks/verify-path.yml
+```
+
+Proxy deployment requires an explicit environment confirmation and is not a Terraform operation:
+
+```bash
+cd platform/GCP/ansible
+APIGEE_DEPLOY_ENV=dev ansible-playbook playbooks/deploy-proxy.yml
+```
+
+Ansible validates the canonical `hello-world-proxy` bundle, ensures the target is the Terraform endpoint-attachment host with `/hello`, imports a generated zip, deploys it with `serviceAccount=`, waits for `READY`, and verifies the northbound response. Live project IDs, endpoint hosts, and service-account emails must remain out of committed group variables and logs.

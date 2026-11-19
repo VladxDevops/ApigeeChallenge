@@ -2,6 +2,11 @@
 # Read-only verification of the whole data path. Safe to run at any time.
 # Optional input: expected_revision (set by deploy-proxy.yml) to assert that exact revision is live.
 
+- name: Resolve Terraform-owned values
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_terraform_values
+
 - name: Preflight (tools and variables)
   ansible.builtin.include_role:
     name: common

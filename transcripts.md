@@ -635,3 +635,30 @@ The user reported a set of Terraform validation errors in `platform/GCP/terrafor
 
 ### Outstanding
 - None. Ready for review and commit by the user.
+
+## Session: Ansible directory audit and Terraform integration
+**Date**: 2026-11-19
+**Agent**: GitHub Copilot
+**Objective**: Compare the generated Ansible directory with the repository source of truth and correct drift, unsafe assumptions, and source-of-truth duplication.
+
+### Summary
+- Audited all Ansible inventory, playbooks, and roles against Terraform, the Apigee proxy XML, and the southbound guard.
+- Added Terraform root outputs for project ID and Apigee runtime service-account email.
+- Added runtime resolution of Terraform-owned values before Ansible preflight and verification.
+- Removed live-identity placeholders from DEV inventory and strengthened exact target URL validation.
+- Updated Ansible documentation and the deployment runbook.
+
+### Files changed
+- `platform/GCP/ansible/`
+- `platform/GCP/terraform/outputs.tf`
+- `docs/operations/deployment-and-validation.md`
+- `changelog.md`
+- `transcripts.md`
+
+### Validation
+- Ran syntax checks for both Ansible playbooks successfully.
+- No Terraform apply, proxy import, proxy deploy, or live northbound verification was performed.
+
+### Outstanding
+- Apply Terraform and confirm the new outputs in the target environment.
+- Run read-only verification and, only with explicit authorization, the guarded proxy deploy.

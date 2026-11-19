@@ -7,6 +7,11 @@
   hosts: dev
   gather_facts: false
   tasks:
+    - name: Resolve Terraform-owned values
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: resolve_terraform_values
+
     - name: Deploy guard (environment confirmation, no check mode)
       ansible.builtin.include_role:
         name: common

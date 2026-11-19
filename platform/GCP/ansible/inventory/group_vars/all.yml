@@ -31,12 +31,11 @@ run_verify_after_deploy: true
 terraform_northbound_output: northbound_ip
 verify_cloud_run_logs: true
 
-# Variables that must be set (and must not contain PLACEHOLDER) before anything runs.
+# Variables that must exist before preflight. Terraform-owned values are resolved before preflight.
 required_vars:
-  - compute_project_id
-  - apigee_org
   - apigee_environment_name
   - apigee_proxy_name
-  - apigee_service_account_email
-  - apigee_endpoint_attachment_host
+  - apigee_instance_name
+  - apigee_envgroup_name
   - envgroup_hostname
+  - cloud_run_service_name

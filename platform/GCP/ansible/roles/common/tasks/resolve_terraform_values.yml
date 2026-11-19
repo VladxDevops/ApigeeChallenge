@@ -1,0 +1,49 @@
+---
+# Resolve Terraform-owned identities and endpoint values.
+# Group vars may remain empty or placeholders; Terraform outputs are authoritative.
+
+- name: Read project ID from Terraform
+  ansible.builtin.command:
+    argv: [terraform, "-chdir={{ terraform_dir }}", output, -raw, compute_project_id]
+  register: tf_project
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Read Apigee runtime service account from Terraform
+  ansible.builtin.command:
+    argv: [terraform, "-chdir={{ terraform_dir }}", output, -raw, apigee_service_account_email]
+  register: tf_apigee_sa
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Read southbound endpoint attachment host from Terraform
+  ansible.builtin.command:
+    argv: [terraform, "-chdir={{ terraform_dir }}", output, -raw, apigee_endpoint_attachment_host]
+  register: tf_endpoint_host
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Stop if Terraform outputs cannot be resolved
+  ansible.builtin.assert:
+    that:
+      - tf_project.rc == 0
+      - (tf_project.stdout | trim | length) > 0
+      - tf_apigee_sa.rc == 0
+      - (tf_apigee_sa.stdout | trim | length) > 0
+      - tf_endpoint_host.rc == 0
+      - (tf_endpoint_host.stdout | trim | length) > 0
+    fail_msg: >-
+      Terraform-owned values could not be resolved. Initialize/configure Terraform and apply the
+      API platform first, then rerun this playbook. Missing outputs: compute_project_id,
+      apigee_service_account_email, and apigee_endpoint_attachment_host.
+    quiet: true
+
+- name: Set Terraform-owned facts
+  ansible.builtin.set_fact:
+    compute_project_id: "{{ tf_project.stdout | trim }}"
+    apigee_org: "{{ tf_project.stdout | trim }}"
+    apigee_service_account_email: "{{ tf_apigee_sa.stdout | trim }}"
+    apigee_endpoint_attachment_host: "{{ tf_endpoint_host.stdout | trim }}"

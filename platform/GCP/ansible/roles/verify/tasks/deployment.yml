@@ -42,13 +42,13 @@
   ansible.builtin.assert:
     that:
       - deployment_detail.get('state', '') == 'READY'
-      - deployment_detail.get('serviceAccount', '').endswith(apigee_service_account_email)
+      - deployment_detail.get('serviceAccount', '') == apigee_service_account_email
       - apigee_instance_name in deployed_instances
       - deployed_routes | selectattr('basepath', 'equalto', apigee_proxy_basepath) | selectattr('envgroup', 'equalto', apigee_envgroup_name) | list | length > 0
     fail_msg: >-
       Deployment check failed for revision {{ deployed_revision }}.
       state={{ deployment_detail.get('state', 'unknown') }} (want READY);
-      serviceAccount={{ deployment_detail.get('serviceAccount', 'none') }} (want to end with {{ apigee_service_account_email }});
+      serviceAccount={{ deployment_detail.get('serviceAccount', 'none') }} (want {{ apigee_service_account_email }});
       instances={{ deployed_instances }} (want {{ apigee_instance_name }});
       routes={{ deployed_routes }} (want basepath {{ apigee_proxy_basepath }} in envgroup {{ apigee_envgroup_name }}).
     quiet: true

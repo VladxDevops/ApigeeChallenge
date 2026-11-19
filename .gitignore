@@ -57,3 +57,12 @@ artifacts/
 Terraform state backup: 
 /home/pochitawork/InterviewCloudProjects/ApigeeChallenge/platform/GCP/terraform/terraform-state-backup.json
 terraform-state-backup.json
+
+
+# Ansible: 
+*.retry
+.ansible/
+__pycache__/
+*.pyc
+local.yml
+*.local.yml

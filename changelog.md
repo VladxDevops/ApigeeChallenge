@@ -25,6 +25,26 @@ version = "1.6"
 - When NOT to Retrieve: When reading current architecture or security model — those are canonical, not historical.
 -->
 
+## 2026-11-19 — Harden Ansible integration and remove duplicated Terraform source truth
+
+**What changed**:
+- Audited `platform/GCP/ansible/` against the Apigee proxy, Terraform outputs, and southbound guard.
+- Added root Terraform outputs for `compute_project_id` and `apigee_service_account_email`.
+- Added Ansible runtime resolution of project, Apigee runtime service account, and endpoint-attachment host from Terraform outputs.
+- Strengthened bundle validation to require the exact `https://<endpoint-host>/hello` target URL and removed live identity placeholders from DEV inventory.
+- Updated the Ansible README, agent guide, deployment runbook, and verification service-account check.
+
+**Why**:
+- Terraform is the source of truth for cloud identities and endpoint values; keeping copies in committed Ansible inventory creates drift.
+- The bundle validator needed to enforce the exact target contract, not only a matching host.
+
+**Affected area**:
+- Ansible deployment/verification, Terraform root outputs, and deployment documentation.
+
+**Validation performed**:
+- Both Ansible playbooks pass `--syntax-check`.
+- Live verification and deployment remain intentionally unrun because they require an applied environment and explicit deploy authorization.
+
 ## 2026-11-08 — Record the dev target TLS exception and the service-account deploy
 
 **What changed**:
@@ -782,3 +802,5 @@ Now am I able to terraform apply the infra module.
 **Validation performed**:
 - Executed GCP API calls verifying that `gcloud compute addresses create` rejects `--network-tier=STANDARD` for internal addresses and rejects address reservation in `PRIVATE_SERVICE_CONNECT` subnets.
 - Verified Terraform syntax, formatting, and variables.
+
+---

@@ -54,21 +54,23 @@
     proxy_xml: "{{ proxy_endpoint_raw.content | b64decode }}"
     target_xml: "{{ target_endpoint_raw.content | b64decode }}"
 
-- name: Extract the host from the target URL
+- name: Extract the host and URL from the target URL
   ansible.builtin.set_fact:
     bundle_target_host: "{{ target_xml | regex_findall('<URL>https://([^/:<]+)') | first | default('', true) }}"
+    bundle_target_url: "{{ target_xml | regex_findall('<URL>(https://[^<]+)</URL>') | first | default('', true) }}"
 
-- name: Check proxy name, base path and target host
+- name: Check proxy name, base path, target URL and target host
   ansible.builtin.assert:
     that:
       - descriptor_xml is search(re_descriptor_name)
       - proxy_xml is search(re_basepath)
       - (bundle_target_host | length) > 0
       - bundle_target_host == apigee_endpoint_attachment_host
+      - bundle_target_url == ('https://' ~ apigee_endpoint_attachment_host ~ apigee_proxy_basepath)
     fail_msg: >-
       Bundle mismatch. Expected proxy name '{{ apigee_proxy_name }}', base path '{{ apigee_proxy_basepath }}',
-      and an https:// target URL whose host equals apigee_endpoint_attachment_host
-      ('{{ apigee_endpoint_attachment_host }}'); the target URL host found is '{{ bundle_target_host }}'.
+      and target URL 'https://{{ apigee_endpoint_attachment_host }}{{ apigee_proxy_basepath }}';
+      found target URL '{{ bundle_target_url }}' and host '{{ bundle_target_host }}'.
     quiet: true
   vars:
     re_descriptor_name: '<APIProxy[^>]*\bname="{{ apigee_proxy_name }}"'
