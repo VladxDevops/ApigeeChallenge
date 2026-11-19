@@ -42,7 +42,7 @@
   ansible.builtin.assert:
     that:
       - deployment_detail.get('state', '') == 'READY'
-      - deployment_detail.get('serviceAccount', '') == apigee_service_account_email
+      - (deployment_detail.get('serviceAccount', '').split('/') | last) == apigee_service_account_email
       - apigee_instance_name in deployed_instances
       - deployed_routes | selectattr('basepath', 'equalto', apigee_proxy_basepath) | selectattr('envgroup', 'equalto', apigee_envgroup_name) | list | length > 0
     fail_msg: >-

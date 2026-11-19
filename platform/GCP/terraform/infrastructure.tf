@@ -10,17 +10,17 @@ module "infrastructure" {
   api_private_subnet_cidr            = var.api_private_subnet_cidr
   proxy_only_subnet_cidr             = var.proxy_only_subnet_cidr
   psc_nat_subnet_cidr                = var.psc_nat_subnet_cidr
-  apigee_endpoint_attachment_host = var.apigee_endpoint_attachment_host
+  apigee_endpoint_attachment_host    = var.apigee_endpoint_attachment_host
   # Hub is created by modules/hybrid-connectivity. Its self link is only known
   # after that module plans, so it cannot also be a required input variable.
   hub_network_self_link           = module.hybrid_connectivity.hub_network_self_link
-  artifact_registry_repository_id  = var.artifact_registry_repository_id
+  artifact_registry_repository_id = var.artifact_registry_repository_id
   apigee_consumer_project_id      = var.compute_project_id
-  apigee_tenant_project_id   = var.apigee_tenant_project_id
+  apigee_tenant_project_id        = var.apigee_tenant_project_id
   cloud_run_service_name          = var.cloud_run_service_name
   cloud_run_image                 = var.cloud_run_image
   cloud_run_container_port        = var.cloud_run_container_port
-  cloud_run_service_account_ldap = var.cloud_run_service_account_ldap
+  cloud_run_service_account_ldap  = var.cloud_run_service_account_ldap
   cloud_run_service_account_email = var.cloud_run_service_account_email
   cloud_run_min_instances         = var.cloud_run_min_instances
   cloud_run_max_instances         = var.cloud_run_max_instances
@@ -53,7 +53,7 @@ module "security" {
   compute_project_number             = var.compute_project_number
   compute_region                     = var.compute_region
   terraform_deployer_service_account = var.terraform_deployer_service_account
-  cloud_run_service_account_ldap = var.cloud_run_service_account_ldap
+  cloud_run_service_account_ldap     = var.cloud_run_service_account_ldap
 
 
   # Network references from infrastructure module

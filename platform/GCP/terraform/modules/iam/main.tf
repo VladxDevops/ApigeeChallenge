@@ -194,18 +194,18 @@ resource "google_project_iam_member" "cloud_run_service_account_run_invoker" {
 
 # Cloud Run Invoker Role for the Cloud Run Service Account:
 resource "google_project_iam_member" "cloud_run_sa_cloud_run_invoker" {
-  project = var.compute_project_id
-  role    = "roles/run.invoker"
-  member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}" 
-  depends_on = [ google_service_account.cloud_run_service_account ]
+  project    = var.compute_project_id
+  role       = "roles/run.invoker"
+  member     = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
+  depends_on = [google_service_account.cloud_run_service_account]
 }
 
 # Cloud Run Service Account Roles for Artifact Registry reader: 
 resource "google_project_iam_member" "cloud_run_sa_artifact_registry_reader" {
-  project = var.compute_project_id
-  role    = "roles/artifactregistry.reader"
-  member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}" 
-  depends_on = [ google_service_account.cloud_run_service_account ]
+  project    = var.compute_project_id
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
+  depends_on = [google_service_account.cloud_run_service_account]
 }
 
 

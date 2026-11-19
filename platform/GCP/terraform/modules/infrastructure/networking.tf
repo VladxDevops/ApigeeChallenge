@@ -132,7 +132,7 @@ resource "google_compute_service_attachment" "api_psc" {
   project               = var.compute_project_id
   region                = var.compute_region
   description           = "PSC service attachment publishing the Cloud Run backend to Apigee."
-  target_service = google_compute_forwarding_rule.api_ilb_https.id
+  target_service        = google_compute_forwarding_rule.api_ilb_https.id
   connection_preference = "ACCEPT_MANUAL"
 
   nat_subnets = [google_compute_subnetwork.psc_nat.id]
@@ -219,6 +219,7 @@ resource "google_compute_region_security_policy" "api_armor_policy" {
   project     = var.compute_project_id
   region      = var.compute_region
   description = "Baseline Cloud Armor policy for the northbound API entry point."
+  type        = "CLOUD_ARMOR"
 
   rules {
     action      = "deny(403)"

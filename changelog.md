@@ -804,3 +804,26 @@ Now am I able to terraform apply the infra module.
 - Verified Terraform syntax, formatting, and variables.
 
 ---
+
+## 2026-11-19 — Complete DEV infrastructure and deploy proxy revision 12
+
+**What changed**:
+- Applied the staged DEV Terraform implementation, including the API infrastructure, security rules, observability resources, and hybrid connectivity resources.
+- Imported the existing GCS remote-state bucket into Terraform state and persisted all required root outputs, including `compute_project_id`.
+- Added the explicit `CLOUD_ARMOR` type to the regional security policy to remove Terraform replacement drift.
+- Normalized Apigee's full service-account resource path in the Ansible verification comparison.
+- Imported and deployed `hello-world-proxy` revision 12 to the `dev` environment.
+
+**Why**:
+- Terraform outputs were missing until the root configuration was applied and state was refreshed.
+- The live deployment required exact Terraform identities and endpoint values plus a provider-safe Cloud Armor resource definition.
+- Apigee returns deployment service accounts as full resource paths, requiring normalization against the Terraform email output.
+
+**Affected area**:
+- Terraform DEV state, infrastructure, security, hybrid connectivity, observability, and Apigee Ansible verification/deployment.
+
+**Validation performed**:
+- `terraform output -json` resolved all three required Ansible values.
+- Read-only verification passed: endpoint attachment `ACTIVE/ACCEPTED`, revision 12 `READY`, and northbound `HTTP 200` via `34.0.141.222`.
+- Cloud Run logs showed the verified request.
+- Deploy playbook completed with revision 12 in `READY` state and full post-deploy verification passing.
