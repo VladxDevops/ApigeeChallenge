@@ -827,3 +827,27 @@ Now am I able to terraform apply the infra module.
 - Read-only verification passed: endpoint attachment `ACTIVE/ACCEPTED`, revision 12 `READY`, and northbound `HTTP 200` via `34.0.141.222`.
 - Cloud Run logs showed the verified request.
 - Deploy playbook completed with revision 12 in `READY` state and full post-deploy verification passing.
+
+## 2026-11-20 — Add GitHub Actions GitOps pipeline plan and DEV bootstrap
+
+**What changed**:
+- Added GitHub Actions workflow designs for pull-request validation and DEV deployment.
+- Added initial Workload Identity Federation pool/provider and GitHub repository/branch restrictions in Terraform bootstrap.
+- Bound the existing DEV Terraform deployer service account to GitHub OIDC without a service-account key.
+- Isolated DEV Terraform state under `terraform/state/dev` and added backend configuration.
+- Added immutable Cloud Build image promotion for the primary hello-backend source.
+- Documented the CI/CD trust boundary, responsibilities, approvals, and rollback in public architecture and operations docs.
+
+**Why**:
+- GitHub Actions needs to authenticate with GCP without persistent credentials and must be reusable by future environments.
+- The existing repository already separated Terraform infrastructure and Ansible proxy operations, so the pipeline should orchestrate rather than merge those responsibilities.
+
+**Affected area**:
+- GitHub Actions workflows, GCP bootstrap Terraform, state addressing, container build configuration, architecture decisions, and deployment documentation.
+
+**Validation performed**:
+- Terraform bootstrap and root modules pass `terraform validate` with backend disabled where appropriate.
+- Terraform formatting was applied and both modules initialized successfully.
+- Both existing Ansible playbooks pass `--syntax-check`.
+- GitHub workflow editor diagnostics report no syntax errors.
+- Live WIF authentication, DEV apply, Cloud Build submission, and end-to-end traffic remain pending repository variables and approval setup.

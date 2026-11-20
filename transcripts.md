@@ -690,3 +690,44 @@ The user reported a set of Terraform validation errors in `platform/GCP/terrafor
 ### Outstanding questions
 - Replace DEV placeholder Secret Manager values with managed development secrets before production use.
 - Decide whether to apply a bucket-label-only state reconciliation or retain the reviewed Terraform plan state with no resource changes.
+
+## Session: GitOps pipeline implementation start
+**Date**: 2026-11-20
+**Agent**: GitHub Copilot (MAI Code 2 Flash)
+**Objective**: Start the GitHub Actions DEV GitOps implementation, with GCP Workload Identity Federation, Terraform, Cloud Build, and guarded Ansible deployment.
+
+### Summary
+- Confirmed repository `Arixxtxdevops/ApigeeChallenge` and deployment branch `Build-DEV`.
+- Added public pipeline design and CI/CD architecture documentation.
+- Recorded the orchestration decision in the architecture ADR.
+- Added bootstrap Terraform for a GitHub OIDC WIF pool/provider and existing DEV Terraform deployer service-account binding.
+- Added separate DEV Terraform state prefix and backend configuration.
+- Added PR validation and DEV deployment workflows.
+- Removed mutable `latest` container tags from the primary Cloud Build configuration.
+
+### Files changed
+- `docs/operations/github-actions-gitops.md`
+- `docs/architecture/ci-cd.md`
+- `docs/decisions/architecture-decisions.md`
+- `platform/GCP/terraform/bootstrap/main.tf`
+- `platform/GCP/terraform/bootstrap/variables.tf`
+- `platform/GCP/terraform/bootstrap/terraform.tfvars`
+- `platform/GCP/terraform/backends.tf`
+- `platform/GCP/terraform/environments/DEV/backend.hcl`
+- `.github/workflows/dev-deploy.yml`
+- `.github/workflows/pr-validation.yml`
+- `APPS/AppsPlatform/hello-backend/cloudbuild.yaml`
+- `APPS/RAW-containers/RAW-hello-backend/cloudbuild.yaml`
+- `changelog.md`
+- `transcripts.md`
+
+### Validation
+- Terraform bootstrap and root modules pass `terraform validate`.
+- Both Ansible playbooks pass `--syntax-check`.
+- VS Code workflow diagnostics report no errors.
+
+### Outstanding
+- Apply the WIF bootstrap once through an authorized bootstrap identity.
+- Configure the GitHub `DEV` environment, required reviewers, and repository variables.
+- Confirm and configure the Cloud Build/GitHub integration if using managed triggers instead of submit mode.
+- Run live WIF authentication and DEV deployment in the intended GCP project.

@@ -153,3 +153,23 @@ This document records the major decisions needed to defend the proposed architec
 - Triage runbook documentation is embedded directly inside Terraform-managed alert policies for operational readiness.
 
 
+## Decision 9 - GitOps Deployment Orchestration
+
+**Decision:** Use GitHub Actions as the deployment orchestrator, GCP Workload Identity Federation for authentication, Terraform for infrastructure, Cloud Build for container images, and Ansible for guarded Apigee proxy operations.
+
+| Option | Security | Reproducibility | Operations | Result |
+|---|---|---|---|---|
+| GitHub Actions + WIF | Short-lived OIDC identity, branch/repository restrictions, no key files | Plan/artifact promotion and GitHub audit trail | Moderate; integrates with existing repository | Selected |
+| Service-account JSON key in GitHub Secrets | Long-lived credential and key lifecycle risk | Reproducible but weaker secret controls | Low setup, high operational risk | Rejected |
+| Direct manual gcloud/Terraform | Operator-dependent | Poor audit and drift risk | Low automation | Rejected |
+| Terraform-managed Cloud Build trigger only | Integrated with GCP | Requires a GitHub connection/trusted trigger setup | More moving parts | Deferred to bootstrap verification |
+
+**Consequence:**
+- GitHub Actions authenticates only through Workload Identity Federation.
+- The initial workflow runs on `Build-DEV` and targets the DEV GitHub environment with approval before apply.
+- Terraform state uses `terraform/state/dev` and later environments receive separate prefixes/projects.
+- Container deployments use an immutable Artifact Registry digest rather than `latest`.
+- Ansible remains outside Terraform and performs only proxy bundle deployment and verification.
+- The WIF pool/provider is bootstrap infrastructure and requires an initial trusted Terraform run before GitHub Actions can authenticate itself.
+
+

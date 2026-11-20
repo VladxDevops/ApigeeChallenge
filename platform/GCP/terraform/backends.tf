@@ -1,4 +1,4 @@
-#Create GCS Bucket for Terraform remote backend state management. The bucket name is "terraform_state_backend_rocket" and the prefix for the state files is "terraform/state". The required Terraform version is set to ">= 1.5.0".
+#Create GCS Bucket for Terraform remote backend state management. The bucket name is "terraform_state_backend_rocket" and the prefix for the state files is "terraform/state/dev". The required Terraform version is set to ">= 1.5.0".
 
 resource "google_storage_bucket" "terraform_state_backend_apigeechallenge" {
   name                        = var.terraform_remote_state_bucket_name
@@ -22,7 +22,7 @@ terraform {
   backend "gcs" {
     # Backend blocks cannot interpolate variables. This is the bucket from dev.tfvars.
     bucket = "terraform_state_backend_apigeechallenge"
-    prefix = "terraform/state"
+    prefix = "terraform/state/dev"
   }
 
   required_version = ">= 1.5.0"

@@ -1,0 +1,175 @@
+name: DEV GitOps Deployment
+
+on:
+  push:
+    branches:
+      - Build-DEV
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: dev-gitops
+  cancel-in-progress: false
+
+jobs:
+  build-and-plan:
+    name: Build image and plan DEV
+    runs-on: ubuntu-latest
+    outputs:
+      image_digest_ref: ${{ steps.image.outputs.digest_ref }}
+
+    steps:
+      - name: Checkout reviewed commit
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.DEV_GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEV_TERRAFORM_DEPLOYER_SA }}
+          create_credentials_file: true
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Submit immutable container build
+        working-directory: APPS/AppsPlatform/hello-backend
+        env:
+          DEV_PROJECT_ID: ${{ vars.DEV_GCP_PROJECT_ID }}
+          DEV_REGION: ${{ vars.DEV_GCP_REGION }}
+        run: |
+          set -euo pipefail
+          SHORT_SHA="$(printf '%.7s' "${GITHUB_SHA}")"
+          gcloud builds submit . \
+            --project="${DEV_PROJECT_ID}" \
+            --region="${DEV_REGION}" \
+            --config=cloudbuild.yaml \
+            --substitutions="_REGION=${DEV_REGION},_SHORT_SHA=${SHORT_SHA}" \
+            --suppress-logs
+
+      - name: Resolve immutable image digest
+        id: image
+        env:
+          DEV_PROJECT_ID: ${{ vars.DEV_GCP_PROJECT_ID }}
+          DEV_REGION: ${{ vars.DEV_GCP_REGION }}
+        run: |
+          set -euo pipefail
+          SHORT_SHA="$(printf '%.7s' "${GITHUB_SHA}")"
+          IMAGE="${DEV_REGION}-docker.pkg.dev/${DEV_PROJECT_ID}/apigee-challenge-repository/hello-container-backend"
+          DIGEST="$(gcloud artifacts docker images describe "${IMAGE}:${SHORT_SHA}" --project="${DEV_PROJECT_ID}" --format='value(image_summary.digest)')"
+          test -n "${DIGEST}"
+          echo "digest_ref=${IMAGE}@${DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform init
+        working-directory: platform/GCP/terraform
+        env:
+          DEV_STATE_BUCKET: ${{ vars.DEV_TERRAFORM_STATE_BUCKET }}
+        run: |
+          terraform init -reconfigure -backend-config="bucket=${DEV_STATE_BUCKET}" -backend-config="prefix=terraform/state/dev"
+
+      - name: Terraform format and validate
+        working-directory: platform/GCP/terraform
+        run: |
+          terraform fmt -recursive -check
+          terraform validate
+
+      - name: Terraform plan DEV
+        working-directory: platform/GCP/terraform
+        env:
+          IMAGE_DIGEST_REF: ${{ steps.image.outputs.digest_ref }}
+        run: |
+          terraform plan \
+            -input=false \
+            -out=dev.tfplan \
+            -var-file=environments/DEV/dev.tfvars \
+            -var="cloud_run_image=${IMAGE_DIGEST_REF}"
+
+      - name: Upload reviewed plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-terraform-plan
+          path: platform/GCP/terraform/dev.tfplan
+          if-no-files-found: error
+          retention-days: 14
+
+  apply-and-deploy:
+    name: Approve and deploy DEV
+    runs-on: ubuntu-latest
+    needs: build-and-plan
+    environment: DEV
+
+    steps:
+      - name: Checkout reviewed commit
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.DEV_GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEV_TERRAFORM_DEPLOYER_SA }}
+          create_credentials_file: true
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Download reviewed plan
+        uses: actions/download-artifact@v4
+        with:
+          name: dev-terraform-plan
+          path: platform/GCP/terraform
+
+      - name: Terraform init
+        working-directory: platform/GCP/terraform
+        env:
+          DEV_STATE_BUCKET: ${{ vars.DEV_TERRAFORM_STATE_BUCKET }}
+        run: |
+          terraform init -reconfigure -backend-config="bucket=${DEV_STATE_BUCKET}" -backend-config="prefix=terraform/state/dev"
+
+      - name: Terraform apply reviewed DEV plan
+        working-directory: platform/GCP/terraform
+        run: terraform apply -input=false -auto-approve dev.tfplan
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Ansible
+        run: pip install "ansible-core==2.16.*"
+
+      - name: Ansible syntax checks
+        working-directory: platform/GCP/ansible
+        run: |
+          ansible-playbook playbooks/verify-path.yml --syntax-check
+          ansible-playbook playbooks/deploy-proxy.yml --syntax-check
+
+      - name: Verify existing DEV path
+        working-directory: platform/GCP/ansible
+        run: ansible-playbook playbooks/verify-path.yml
+
+      - name: Deploy and verify Apigee proxy
+        working-directory: platform/GCP/ansible
+        env:
+          APIGEE_DEPLOY_ENV: dev
+        run: |
+          ansible-playbook playbooks/deploy-proxy.yml \
+            -e deploy_wait_retries=60
+
+      - name: Deployment summary
+        env:
+          IMAGE_DIGEST_REF: ${{ needs.build-and-plan.outputs.image_digest_ref }}
+        run: |
+          printf 'DEV deployment completed.\n'
+          printf 'Image: %s\n' "${IMAGE_DIGEST_REF}"

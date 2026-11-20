@@ -1,0 +1,59 @@
+name: Pull Request Validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-and-ansible:
+    name: Terraform and Ansible validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform format check
+        run: terraform fmt -recursive -check platform/GCP/terraform
+
+      - name: Terraform init without state
+        working-directory: platform/GCP/terraform
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: platform/GCP/terraform
+        run: terraform validate
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Ansible and XML tooling
+        run: |
+          pip install "ansible-core==2.16.*"
+          sudo apt-get update
+          sudo apt-get install -y xmllint || sudo apt-get install -y libxml2-utils
+
+      - name: Ansible syntax checks
+        working-directory: platform/GCP/ansible
+        run: |
+          ansible-playbook playbooks/verify-path.yml --syntax-check
+          ansible-playbook playbooks/deploy-proxy.yml --syntax-check
+
+      - name: Validate canonical proxy XML
+        run: |
+          xmllint --noout \
+            APPS/APIgee/proxies/hello-world-proxy/apiproxy/hello-world-proxy.xml \
+            APPS/APIgee/proxies/hello-world-proxy/apiproxy/proxies/default.xml \
+            APPS/APIgee/proxies/hello-world-proxy/apiproxy/targets/default.xml
