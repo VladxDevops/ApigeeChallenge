@@ -627,3 +627,9 @@ Use:
 - Avoidance of broad primitive roles when possible.
 
 ---
+
+# 14. Service Account Handling
+
+When documenting or referencing service accounts:
+
+- Never hardcode or publish a service-account email address in documentation, diagrams, examples, comments, or validation output. Reference service accounts through Terraform variables, environment variables, generated resource attributes, or a clearly named placeholder variable such as `<var.service_account_email>`.

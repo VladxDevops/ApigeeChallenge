@@ -16,19 +16,16 @@ variable "terraform_remote_state_bucket_name" {
 variable "github_repository_owner" {
   description = "GitHub organization or user that owns the repository."
   type        = string
-  default     = "Arixxtxdevops"
 }
 
 variable "github_repository_name" {
   description = "GitHub repository name trusted by the WIF provider."
   type        = string
-  default     = "ApigeeChallenge"
 }
 
 variable "github_deployment_branch" {
   description = "Full branch ref trusted for initial DEV deployments."
   type        = string
-  default     = "refs/heads/Build-DEV"
 }
 
 variable "wif_pool_id" {
@@ -46,5 +43,4 @@ variable "wif_provider_id" {
 variable "terraform_deployer_service_account_email" {
   description = "Existing DEV Terraform deployer service account to bind to GitHub Actions WIF."
   type        = string
-  default     = "dev-terraform-deployer-sa@apigeechallenge.iam.gserviceaccount.com"
 }

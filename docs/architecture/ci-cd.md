@@ -14,6 +14,7 @@ DEV GCP project
 Infrastructure / container / proxy revisions
 ```
 
+
 ## Responsibilities
 
 | System | Responsibility | Must not own |
@@ -24,9 +25,10 @@ Infrastructure / container / proxy revisions
 | Cloud Build | Container build and Artifact Registry push | Infrastructure state or proxy deployment |
 | Ansible | Proxy import/deploy/verify | VPC, IAM, Cloud Run, or load-balancer changes |
 
+
 ## Initial DEV topology
 
-DEV remains in the existing GCP project until project separation is implemented. The pipeline identity is `dev-terraform-deployer-sa@apigeechallenge.iam.gserviceaccount.com`.
+DEV remains in the existing GCP project until project separation is implemented. The pipeline identity is (variable:) terraform_deployer_service_account.
 
 Future environments should use:
 
@@ -35,6 +37,7 @@ Future environments should use:
 - A separate Terraform state bucket/prefix.
 - A separate GitHub environment approval policy.
 - Separate tfvars and inventory values.
+
 
 ## Required special subnets and return traffic
 
@@ -46,6 +49,7 @@ The pipeline does not alter the architecture's private traffic contract. Terrafo
 - Cloud Run VPC connector subnet.
 
 Deployment automation must verify that these resources remain private and that no direct backend exposure is introduced.
+
 
 ## Artifact promotion
 
